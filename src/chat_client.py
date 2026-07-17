@@ -87,38 +87,54 @@ class ChatClient:
     def has_api_key(self) -> bool:
         return bool(self.api_key)
 
-    def complete(self, question: str) -> ChatResponse:
+    def complete(
+        self,
+        question: str,
+        *,
+        model: str | None = None,
+        system_prompt: str | None = None,
+        extra_user_prefix: str | None = None,
+    ) -> ChatResponse:
+        """Answer a question. Optional model override, system prompt, and user prefix."""
         q = (question or "").strip()
         if not q:
             return ChatResponse(
                 answer="",
                 latency_ms=0.0,
-                model=self.model,
+                model=model or self.model,
                 backend="none",
                 error="empty_question",
             )
 
+        use_model = model or self.model
         # Prefer live API when key present
         if self.api_key:
             try:
-                return self._openai_complete(q)
+                return self._openai_complete(
+                    q,
+                    model=use_model,
+                    system_prompt=system_prompt,
+                    extra_user_prefix=extra_user_prefix,
+                )
             except Exception as exc:  # noqa: BLE001
-                # Fall back to golden if available
-                golden = self._golden_complete(q)
-                if golden is not None:
-                    golden.error = f"live_failed_fallback_golden: {exc}"
-                    return golden
+                # Fall back to golden if available (skip if repair prefix — not a raw Q)
+                if not extra_user_prefix:
+                    golden = self._golden_complete(q)
+                    if golden is not None:
+                        golden.error = f"live_failed_fallback_golden: {exc}"
+                        return golden
                 return ChatResponse(
                     answer="",
                     latency_ms=0.0,
-                    model=self.model,
+                    model=use_model,
                     backend="openai",
                     error=str(exc),
                 )
 
-        golden = self._golden_complete(q)
-        if golden is not None:
-            return golden
+        if not extra_user_prefix:
+            golden = self._golden_complete(q)
+            if golden is not None:
+                return golden
 
         return ChatResponse(
             answer=(
@@ -147,17 +163,30 @@ class ChatClient:
             raw={"id": case["id"], "matched": True},
         )
 
-    def _openai_complete(self, question: str) -> ChatResponse:
+    def _openai_complete(
+        self,
+        question: str,
+        *,
+        model: str | None = None,
+        system_prompt: str | None = None,
+        extra_user_prefix: str | None = None,
+    ) -> ChatResponse:
+        use_model = model or self.model
+        user_content = (
+            f"{extra_user_prefix.strip()}\n\n{question}"
+            if extra_user_prefix
+            else question
+        )
         url = f"{self.base_url}/chat/completions"
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
         }
         body = {
-            "model": self.model,
+            "model": use_model,
             "messages": [
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": question},
+                {"role": "system", "content": system_prompt or SYSTEM_PROMPT},
+                {"role": "user", "content": user_content},
             ],
             "temperature": 0.2,
         }
@@ -171,12 +200,19 @@ class ChatClient:
         return ChatResponse(
             answer=answer,
             latency_ms=round(latency_ms, 2),
-            model=data.get("model") or self.model,
+            model=data.get("model") or use_model,
             backend="openai",
             prompt_tokens=usage.get("prompt_tokens"),
             completion_tokens=usage.get("completion_tokens"),
             raw={"id": data.get("id"), "usage": usage},
         )
+
+    def secondary_model(self) -> str:
+        """Second free-tier model for A/B demos (env OPENAI_MODEL_B)."""
+        return (
+            os.getenv("OPENAI_MODEL_B")
+            or "llama-3.3-70b-versatile"
+        ).strip()
 
 
 def load_red_team_prompts(limit: int = 6) -> list[dict[str, str]]:

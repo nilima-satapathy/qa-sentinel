@@ -12,12 +12,14 @@ Planned with [OpenSpec](https://openspec.dev/) · Built on [llm-eval-dashboard](
 You ask a testing question
         ↓
 Free-tier cloud LLM answers (Groq)  — or golden offline fallback
+   (optional A/B: two models → gate both → pick winner)
         ↓
 Quality gate scores the answer
   L1 offline policy · L2 golden match · L3 optional AI judge
+   (optional repair: one rewrite + re-gate on WARN/FAIL)
         ↓
 UI shows answer + 🟢 PASS / 🟡 WARN / 🔴 FAIL + reasons
-        + free-credit meter + session quality
+        + free-credit meter + session quality score banner
 ```
 
 **Showcase:** AI is used **as the product** (chat) **and inside the gate** (optional LLM-as-judge).
@@ -56,6 +58,19 @@ OPENAI_MODEL=llama-3.1-8b-instant
 
 Toggle **AI-as-judge (L3)** in the sidebar for a second free-tier call.
 
+Stretch toggles (use carefully on free tier):
+- **Repair loop** — one rewrite + re-gate when WARN/FAIL
+- **A/B dual models** — Model A vs `OPENAI_MODEL_B`, gated winner wins
+
+### Batch CI smoke (offline)
+
+```powershell
+python scripts/run_batch_gate.py
+python scripts/run_batch_gate.py --limit 5 --ids qa-001,qa-002
+```
+
+Exit code `1` if any case **FAIL**s.
+
 ---
 
 ## Architecture
@@ -66,24 +81,28 @@ Toggle **AI-as-judge (L3)** in the sidebar for a second free-tier call.
 | **L1 gate** | Length, critical policy, domain fit (free) |
 | **L2 gate** | Golden must_include + overlap when Q matches |
 | **L3 gate** | Optional AI judge JSON score (free tier) |
+| **Repair** | Optional one-shot rewrite on WARN/FAIL |
+| **A/B** | Optional dual free models + gated winner |
 | **Store** | SQLite turns + daily free-tier usage |
 
-OpenSpec plan: `openspec/changes/realtime-chat-quality-gate/`
+OpenSpec (archived): `openspec/changes/archive/2026-07-17-realtime-chat-quality-gate/`  
+Main specs: `openspec/specs/`
 
 ---
 
 ## Demo script (2 minutes)
 
-1. Golden question → **PASS** badge  
+1. Golden question → **PASS** badge + session quality score  
 2. Sidebar red-team button → refuse or **FAIL** if unsafe  
 3. Toggle AI judge → show L3 reasons  
 4. Point at free-tier meter  
+5. (Optional) Repair on a weak answer · A/B two free models  
 
 ---
 
 ## Interview one-liner
 
-> “I built a realtime testing assistant chatbot where every answer runs through a quality gate — offline rules, golden metrics, and optional AI-as-judge — on free-tier cloud models.”
+> “I built a realtime testing assistant chatbot where every answer runs through a quality gate — offline rules, golden metrics, and optional AI-as-judge — on free-tier cloud models, with repair and A/B gated selection as stretch.”
 
 ---
 
@@ -96,9 +115,12 @@ qa-sentinel/
 ├── src/
 │   ├── chat_client.py
 │   ├── quality_gate.py
+│   ├── repair.py          # repair + A/B pick
 │   ├── store.py
 │   └── paths.py
+├── scripts/
+│   ├── setup_harness.ps1
+│   └── run_batch_gate.py  # offline golden CI smoke
 ├── tests/
-├── openspec/              # Spec-driven plan
-└── scripts/setup_harness.ps1
+└── openspec/              # Spec-driven plan + archived change
 ```

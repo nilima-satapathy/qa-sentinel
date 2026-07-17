@@ -1,9 +1,10 @@
-"""MVP tests: golden chat + offline quality gate."""
+"""MVP + stretch tests: golden chat, offline gate, repair/A/B helpers."""
 
 from __future__ import annotations
 
-from src.chat_client import ChatClient
-from src.quality_gate import evaluate_answer, evaluate_l1, load_policy
+from src.chat_client import ChatClient, ChatResponse
+from src.quality_gate import GateResult, evaluate_answer, evaluate_l1, load_policy
+from src.repair import pick_ab_winner, should_repair, try_repair
 from src.store import TurnStore
 
 
@@ -84,3 +85,39 @@ def test_store_roundtrip(tmp_path):
     assert u["requests"] == 1
     snap = store.free_tier_snapshot({"free_tier_daily_tokens": 500, "free_tier_daily_requests": 10})
     assert snap["tokens_remaining"] == 400
+
+
+def test_should_repair_only_on_warn_fail():
+    assert should_repair("WARN") is True
+    assert should_repair("FAIL") is True
+    assert should_repair("PASS") is False
+
+
+def test_repair_skipped_offline():
+    client = ChatClient(api_key="")
+    client.api_key = ""
+    bad_gate = evaluate_answer("What is testing?", "ok", use_judge=False)
+    assert bad_gate.status == "FAIL"
+    out = try_repair("What is testing?", "ok", bad_gate, client, use_judge=False)
+    assert out.attempted is False
+    assert out.final_status == "FAIL"
+    assert any("no API key" in n for n in (out.notes or []))
+
+
+def test_pick_ab_winner_prefers_pass():
+    ga = GateResult(status="WARN", reasons=["a"], scores={})
+    gb = GateResult(status="PASS", reasons=["b"], scores={})
+    ra = ChatResponse(answer="a", latency_ms=10, model="m-a", backend="openai")
+    rb = ChatResponse(answer="b", latency_ms=50, model="m-b", backend="openai")
+    pick = pick_ab_winner("a", ga, ra, "b", gb, rb)
+    assert pick["winner"] == "B"
+    assert pick["answer"] == "b"
+
+
+def test_pick_ab_winner_latency_tiebreak():
+    ga = GateResult(status="PASS", reasons=[], scores={"L2": {"applicable": False}})
+    gb = GateResult(status="PASS", reasons=[], scores={"L2": {"applicable": False}})
+    ra = ChatResponse(answer="a", latency_ms=80, model="m-a", backend="openai")
+    rb = ChatResponse(answer="b", latency_ms=20, model="m-b", backend="openai")
+    pick = pick_ab_winner("a", ga, ra, "b", gb, rb)
+    assert pick["winner"] == "B"
