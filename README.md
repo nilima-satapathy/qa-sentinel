@@ -2,54 +2,103 @@
 
 **Portfolio Project 5** — Realtime software-testing AI chatbot with a **per-answer quality gate**.
 
-Planned with **[OpenSpec](https://openspec.dev/)** (spec-driven development).
+Planned with [OpenSpec](https://openspec.dev/) · Built on [llm-eval-dashboard](https://github.com/nilima-satapathy/llm-eval-dashboard) (Project 4).
 
-## Product idea
+---
 
-User asks a question → free-tier cloud LLM answers (e.g. Groq) → **quality gate** scores the answer → UI shows **PASS / WARN / FAIL**, reasons, latency, tokens, and free-credit remaining.
-
-## OpenSpec plan (source of truth for implementation)
+## What it does
 
 ```text
-openspec/
-├── config.yaml                          # project context for AI
-├── specs/                               # main specs (after archive)
-└── changes/realtime-chat-quality-gate/  # active change
-    ├── proposal.md                      # why / what
-    ├── design.md                        # architecture decisions
-    ├── tasks.md                         # implementation checklist
-    └── specs/                           # requirement deltas
-        ├── live-chat/
-        ├── quality-gate/
-        ├── free-tier-meter/
-        ├── turn-history/
-        └── red-team-playground/
+You ask a testing question
+        ↓
+Free-tier cloud LLM answers (Groq)  — or golden offline fallback
+        ↓
+Quality gate scores the answer
+  L1 offline policy · L2 golden match · L3 optional AI judge
+        ↓
+UI shows answer + 🟢 PASS / 🟡 WARN / 🔴 FAIL + reasons
+        + free-credit meter + session quality
 ```
 
-### Useful commands
+**Showcase:** AI is used **as the product** (chat) **and inside the gate** (optional LLM-as-judge).
+
+---
+
+## Quick start
 
 ```powershell
 cd C:\Users\admin\Code\qa-sentinel
-openspec list
-openspec show realtime-chat-quality-gate
-openspec validate realtime-chat-quality-gate
-openspec status --change realtime-chat-quality-gate
+powershell -File scripts/setup_harness.ps1
+
+python -m venv .venv
+.\.venv\Scripts\activate
+pip install -r requirements-dev.txt
+copy .env.example .env
+# Optional: add Groq key to .env for live cloud answers
+
+pytest tests/ -q
+python -m streamlit run app.py
 ```
 
-### After you approve the plan
+Open **http://localhost:8501**
 
-Implementation follows `openspec/changes/realtime-chat-quality-gate/tasks.md`  
-(or tell the agent: apply the OpenSpec change `realtime-chat-quality-gate`).
+### Without API key
+Use the golden example question:
 
-## Depends on Project 4
+> What is a flaky test, and why is it harmful in CI?
 
-[llm-eval-dashboard](https://github.com/nilima-satapathy/llm-eval-dashboard) — golden set, red-team cases, offline metrics patterns.
+### With free Groq credits
+```env
+OPENAI_BASE_URL=https://api.groq.com/openai/v1
+OPENAI_API_KEY=gsk_...
+OPENAI_MODEL=llama-3.1-8b-instant
+```
 
-## Free tier
+Toggle **AI-as-judge (L3)** in the sidebar for a second free-tier call.
 
-Default: Groq OpenAI-compatible API (`llama-3.1-8b-instant`).  
-AI-as-judge is optional (second free call). Offline golden path works without keys.
+---
 
-## Status
+## Architecture
 
-**Planning complete (OpenSpec).** Implementation not started yet.
+| Layer | Role |
+|-------|------|
+| **Chat SUT** | Groq / OpenAI-compatible · golden fallback |
+| **L1 gate** | Length, critical policy, domain fit (free) |
+| **L2 gate** | Golden must_include + overlap when Q matches |
+| **L3 gate** | Optional AI judge JSON score (free tier) |
+| **Store** | SQLite turns + daily free-tier usage |
+
+OpenSpec plan: `openspec/changes/realtime-chat-quality-gate/`
+
+---
+
+## Demo script (2 minutes)
+
+1. Golden question → **PASS** badge  
+2. Sidebar red-team button → refuse or **FAIL** if unsafe  
+3. Toggle AI judge → show L3 reasons  
+4. Point at free-tier meter  
+
+---
+
+## Interview one-liner
+
+> “I built a realtime testing assistant chatbot where every answer runs through a quality gate — offline rules, golden metrics, and optional AI-as-judge — on free-tier cloud models.”
+
+---
+
+## Layout
+
+```text
+qa-sentinel/
+├── app.py                 # Streamlit UI
+├── gate/policy.yaml
+├── src/
+│   ├── chat_client.py
+│   ├── quality_gate.py
+│   ├── store.py
+│   └── paths.py
+├── tests/
+├── openspec/              # Spec-driven plan
+└── scripts/setup_harness.ps1
+```
