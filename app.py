@@ -1,5 +1,5 @@
 """
-QA Sentinel — Design 1: Chat + Quality Artifact panel (dark / soft light themes).
+QA Sentinel — Claude-style chat + Quality Gate artifact panel.
 
   python -m streamlit run app.py
 """
@@ -30,508 +30,498 @@ ThemeName = Literal["dark", "light"]
 
 st.set_page_config(
     page_title="QA Sentinel",
-    page_icon="🛡️",
+    page_icon="✦",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
 
 # ---------------------------------------------------------------------------
-# Themes — Design 1 Chat + Artifact
+# Claude-inspired theme tokens
+# Warm terracotta · cream canvas · reading-first typography · artifact panel
 # ---------------------------------------------------------------------------
 
 BASE_CSS = """
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;0,8..60,700;1,8..60,400&family=Source+Sans+3:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap');
 
 html, body, [class*="css"] {
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: 'Source Sans 3', system-ui, -apple-system, sans-serif;
 }
 
 .stApp {
-  background: var(--qs-bg);
-  color: var(--qs-text);
+  background: var(--c-bg);
+  color: var(--c-text);
 }
 
 #MainMenu, footer, header { visibility: hidden; }
 div[data-testid="stToolbar"] { display: none; }
 
 .block-container {
-  padding-top: 0.85rem !important;
-  padding-bottom: 5.5rem !important;
-  padding-left: 1.25rem !important;
-  padding-right: 1.25rem !important;
-  max-width: 1400px;
+  padding-top: 0.6rem !important;
+  padding-bottom: 6.5rem !important;
+  padding-left: 1.5rem !important;
+  padding-right: 1.5rem !important;
+  max-width: 1180px;
 }
 
-/* Top bar */
-.qs-topbar {
+/* —— Header (minimal Claude) —— */
+.c-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  margin-bottom: 0.85rem;
-  padding: 0.35rem 0.15rem 0.85rem;
-  border-bottom: 1px solid var(--qs-border);
+  padding: 0.55rem 0 0.9rem;
+  margin-bottom: 0.35rem;
 }
-.qs-brand {
+.c-brand {
   display: flex;
   align-items: center;
-  gap: 0.55rem;
+  gap: 0.65rem;
 }
-.qs-logo {
-  width: 32px;
-  height: 32px;
-  border-radius: 9px;
-  background: linear-gradient(135deg, #10b981, #34d399);
+.c-mark {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: var(--c-accent);
+  color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1rem;
-  box-shadow: 0 0 20px var(--qs-logo-glow);
+  font-size: 0.95rem;
+  font-weight: 600;
+  box-shadow: 0 2px 8px var(--c-accent-glow);
 }
-.qs-brand-name {
-  font-size: 1.1rem;
-  font-weight: 700;
-  letter-spacing: -0.03em;
-  color: var(--qs-text-strong);
+.c-title {
+  font-family: 'Source Serif 4', Georgia, serif;
+  font-size: 1.2rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--c-text-strong);
+  line-height: 1.2;
 }
-.qs-brand-sub {
-  font-size: 0.72rem;
-  color: var(--qs-muted);
-  font-weight: 500;
+.c-subtitle {
+  font-size: 0.78rem;
+  color: var(--c-muted);
+  font-weight: 450;
+  margin-top: 0.05rem;
 }
-.qs-top-meta {
+.c-header-right {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.45rem;
+  gap: 0.4rem;
+  justify-content: flex-end;
 }
-.qs-pill {
+.c-chip {
   display: inline-flex;
   align-items: center;
-  gap: 0.3rem;
-  padding: 0.28rem 0.65rem;
+  gap: 0.28rem;
+  padding: 0.28rem 0.7rem;
   border-radius: 999px;
   font-size: 0.72rem;
-  font-weight: 600;
-  border: 1px solid var(--qs-border);
-  background: var(--qs-pill-bg);
-  color: var(--qs-muted-strong);
+  font-weight: 550;
+  background: var(--c-chip-bg);
+  color: var(--c-muted-strong);
+  border: 1px solid var(--c-border);
 }
-.qs-pill-live {
-  color: var(--qs-pass);
-  border-color: var(--qs-pass-border);
-  background: var(--qs-pass-bg);
-}
-.qs-pill-off {
-  color: var(--qs-warn);
-  border-color: var(--qs-warn-border);
-  background: var(--qs-warn-bg);
+.c-chip-accent {
+  background: var(--c-accent-soft);
+  color: var(--c-accent-text);
+  border-color: var(--c-accent-border);
 }
 
-.qs-session-label {
-  font-size: 0.72rem;
+/* —— Chat column: reading width —— */
+.c-label {
+  font-size: 0.7rem;
   font-weight: 600;
-  color: var(--qs-muted);
-  letter-spacing: 0.04em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  margin-bottom: 0.75rem;
+  color: var(--c-muted);
+  margin: 0.25rem 0 0.65rem;
 }
 
-.qs-chat-shell {
-  min-height: 420px;
-  border-radius: 16px;
-  background: var(--qs-surface);
-  border: 1px solid var(--qs-border);
-  padding: 1rem 1.1rem 0.85rem;
-  box-shadow: var(--qs-shadow-soft);
+.c-chat-frame {
+  min-height: 380px;
+  max-width: 720px;
+  margin: 0 auto;
 }
 
-.qs-empty {
+/* Empty / welcome — Claude centered prompt feel */
+.c-welcome {
   text-align: center;
-  padding: 2.75rem 1.25rem 2rem;
+  padding: 3.5rem 1.25rem 2.25rem;
+  max-width: 34rem;
+  margin: 0 auto;
 }
-.qs-empty-icon {
-  width: 52px;
-  height: 52px;
-  margin: 0 auto 0.85rem;
-  border-radius: 14px;
-  background: var(--qs-pass-bg);
-  border: 1px solid var(--qs-pass-border);
+.c-welcome-mark {
+  width: 44px;
+  height: 44px;
+  margin: 0 auto 1.1rem;
+  border-radius: 999px;
+  background: var(--c-accent);
+  color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.4rem;
-}
-.qs-empty h3 {
-  margin: 0 0 0.4rem;
-  color: var(--qs-text-strong);
   font-size: 1.15rem;
-  font-weight: 600;
+  box-shadow: 0 4px 16px var(--c-accent-glow);
 }
-.qs-empty p {
-  margin: 0 auto;
-  max-width: 28rem;
-  color: var(--qs-muted-strong);
-  font-size: 0.9rem;
-  line-height: 1.55;
+.c-welcome h2 {
+  font-family: 'Source Serif 4', Georgia, serif;
+  font-size: 1.55rem;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  color: var(--c-text-strong);
+  margin: 0 0 0.55rem;
+  line-height: 1.25;
+}
+.c-welcome p {
+  margin: 0 auto 1.35rem;
+  color: var(--c-muted-strong);
+  font-size: 0.98rem;
+  line-height: 1.6;
 }
 
+/* Messages — flat Claude style, not SMS bubbles */
 div[data-testid="stChatMessage"] {
   background: transparent !important;
   border: none !important;
-  padding: 0.35rem 0 !important;
-  margin-bottom: 0.35rem;
+  padding: 0.55rem 0 0.75rem !important;
+  margin: 0 auto 0.15rem;
+  max-width: 720px;
+}
+div[data-testid="stChatMessage"] [data-testid="stChatMessageContent"] {
+  max-width: 100%;
+}
+/* User: subtle warm pill on the right feel via background block */
+div[data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarUser"]),
+div[data-testid="stChatMessage"][data-testid="stChatMessageUser"] {
+  /* fallbacks handled via content styling */
 }
 div[data-testid="stChatMessage"] p {
-  color: var(--qs-text);
-  line-height: 1.55;
+  color: var(--c-text);
+  font-size: 1.02rem;
+  line-height: 1.7;
+  font-family: 'Source Serif 4', Georgia, 'Times New Roman', serif;
+}
+/* Streamlit user avatar row — slightly dimmer serif not needed; keep readable */
+div[data-testid="stChatMessage"] strong {
+  font-weight: 600;
 }
 
-.qs-status-chip {
+.c-msg-user-wrap {
+  display: flex;
+  justify-content: flex-end;
+  margin: 0.35rem 0 0.9rem;
+  max-width: 720px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.c-msg-user {
+  max-width: 85%;
+  padding: 0.75rem 1rem;
+  border-radius: 18px;
+  background: var(--c-user-bg);
+  color: var(--c-text-strong);
+  font-size: 0.98rem;
+  line-height: 1.55;
+  font-family: 'Source Sans 3', system-ui, sans-serif;
+  border: 1px solid var(--c-border);
+}
+.c-msg-assistant {
+  max-width: 720px;
+  margin: 0.25rem auto 0.5rem;
+  padding: 0.15rem 0.15rem 0.35rem;
+}
+.c-msg-assistant .c-body {
+  font-family: 'Source Serif 4', Georgia, serif;
+  font-size: 1.05rem;
+  line-height: 1.72;
+  color: var(--c-text);
+  white-space: pre-wrap;
+}
+.c-msg-role {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--c-muted);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-bottom: 0.35rem;
+  font-family: 'Source Sans 3', system-ui, sans-serif;
+}
+
+/* Gate status under answer — quiet, not neon */
+.c-status {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  margin-top: 0.45rem;
-  padding: 0.28rem 0.7rem;
+  margin-top: 0.75rem;
+  padding: 0.32rem 0.75rem;
   border-radius: 999px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.74rem;
+  font-weight: 600;
+  font-family: 'Source Sans 3', system-ui, sans-serif;
+  border: 1px solid var(--c-border);
+  background: var(--c-chip-bg);
 }
-.qs-status-pass {
-  background: var(--qs-pass-bg);
-  color: var(--qs-pass);
-  border: 1px solid var(--qs-pass-border);
-}
-.qs-status-warn {
-  background: var(--qs-warn-bg);
-  color: var(--qs-warn);
-  border: 1px solid var(--qs-warn-border);
-}
-.qs-status-fail {
-  background: var(--qs-fail-bg);
-  color: var(--qs-fail);
-  border: 1px solid var(--qs-fail-border);
-}
-.qs-status-meta {
-  font-weight: 500;
-  opacity: 0.85;
-}
+.c-status-pass { color: var(--c-pass); border-color: var(--c-pass-border); background: var(--c-pass-bg); }
+.c-status-warn { color: var(--c-warn); border-color: var(--c-warn-border); background: var(--c-warn-bg); }
+.c-status-fail { color: var(--c-fail); border-color: var(--c-fail-border); background: var(--c-fail-bg); }
+.c-status-meta { font-weight: 500; opacity: 0.8; color: var(--c-muted-strong); }
 
-.qs-freebar {
+/* Free tier — thin Claude-like footer strip */
+.c-freebar {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  margin-top: 0.85rem;
-  padding: 0.55rem 0.7rem;
-  border-radius: 10px;
-  background: var(--qs-inset);
-  border: 1px solid var(--qs-border);
+  gap: 0.7rem;
+  max-width: 720px;
+  margin: 1rem auto 0.35rem;
+  padding: 0.5rem 0.15rem;
+  font-size: 0.75rem;
+  color: var(--c-muted);
 }
-.qs-freebar-label {
-  font-size: 0.72rem;
-  color: var(--qs-muted-strong);
-  white-space: nowrap;
-  font-weight: 500;
-}
-.qs-freebar-track {
+.c-freebar-track {
   flex: 1;
-  height: 6px;
+  height: 4px;
   border-radius: 999px;
-  background: var(--qs-track);
+  background: var(--c-track);
   overflow: hidden;
 }
-.qs-freebar-fill {
+.c-freebar-fill {
   height: 100%;
   border-radius: 999px;
-  background: linear-gradient(90deg, #10b981, #34d399);
-}
-.qs-freebar-nums {
-  font-size: 0.72rem;
-  color: var(--qs-muted);
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  white-space: nowrap;
+  background: var(--c-accent);
 }
 
-.qs-artifact {
-  border-radius: 16px;
-  background: var(--qs-surface);
-  border: 1px solid var(--qs-artifact-border);
-  box-shadow: var(--qs-artifact-shadow);
+/* Suggestion chips */
+.c-chips-label {
+  max-width: 720px;
+  margin: 0.85rem auto 0.4rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--c-muted);
+}
+div[data-testid="column"] .stButton > button {
+  border-radius: 999px !important;
+  border: 1px solid var(--c-border) !important;
+  background: var(--c-surface) !important;
+  color: var(--c-text-strong) !important;
+  font-weight: 500 !important;
+  font-size: 0.82rem !important;
+  padding: 0.4rem 0.85rem !important;
+  box-shadow: none !important;
+}
+div[data-testid="column"] .stButton > button:hover {
+  border-color: var(--c-accent-border) !important;
+  background: var(--c-accent-soft) !important;
+  color: var(--c-accent-text) !important;
+}
+
+/* —— Artifact panel (Claude Artifacts vibe) —— */
+.c-artifact {
+  border-radius: 14px;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  box-shadow: var(--c-shadow);
   overflow: hidden;
   position: sticky;
   top: 0.5rem;
 }
-.qs-artifact-head {
+.c-artifact-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.85rem 1rem;
-  border-bottom: 1px solid var(--qs-border);
-  background: var(--qs-artifact-head);
+  padding: 0.8rem 1rem;
+  border-bottom: 1px solid var(--c-border);
+  background: var(--c-artifact-head);
 }
-.qs-artifact-title {
-  font-size: 0.82rem;
-  font-weight: 700;
-  color: var(--qs-text-strong);
-  letter-spacing: -0.01em;
+.c-artifact-title {
+  font-family: 'Source Serif 4', Georgia, serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--c-text-strong);
 }
-.qs-artifact-badge {
+.c-badge {
   font-size: 0.68rem;
   font-weight: 700;
-  padding: 0.18rem 0.5rem;
+  padding: 0.2rem 0.55rem;
   border-radius: 999px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
+  font-family: 'Source Sans 3', system-ui, sans-serif;
 }
-.qs-badge-pass {
-  background: var(--qs-pass-bg);
-  color: var(--qs-pass);
-}
-.qs-badge-warn {
-  background: var(--qs-warn-bg);
-  color: var(--qs-warn);
-}
-.qs-badge-fail {
-  background: var(--qs-fail-bg);
-  color: var(--qs-fail);
-}
-.qs-badge-idle {
-  background: var(--qs-pill-bg);
-  color: var(--qs-muted);
-}
-.qs-artifact-body {
-  padding: 1.1rem 1rem 1.15rem;
-}
-.qs-ring-wrap {
+.c-badge-pass { background: var(--c-pass-bg); color: var(--c-pass); }
+.c-badge-warn { background: var(--c-warn-bg); color: var(--c-warn); }
+.c-badge-fail { background: var(--c-fail-bg); color: var(--c-fail); }
+.c-badge-idle { background: var(--c-chip-bg); color: var(--c-muted); }
+.c-artifact-body { padding: 1.05rem 1rem 1.15rem; }
+.c-ring-wrap {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-bottom: 1.1rem;
+  margin-bottom: 1rem;
 }
-.qs-ring {
-  width: 118px;
-  height: 118px;
+.c-ring {
+  width: 108px;
+  height: 108px;
   border-radius: 50%;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  border: 5px solid var(--qs-ring-idle);
-  background: var(--qs-ring-bg);
+  border: 4px solid var(--c-track);
+  background: var(--c-ring-bg);
 }
-.qs-ring-pass {
-  border-color: #10b981;
-  box-shadow: 0 0 28px var(--qs-ring-glow-pass);
+.c-ring-pass { border-color: var(--c-pass); }
+.c-ring-warn { border-color: var(--c-warn); }
+.c-ring-fail { border-color: var(--c-fail); }
+.c-ring-status {
+  font-family: 'Source Serif 4', Georgia, serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--c-text-strong);
+  letter-spacing: 0.02em;
 }
-.qs-ring-warn {
-  border-color: #f59e0b;
-  box-shadow: 0 0 28px var(--qs-ring-glow-warn);
+.c-ring-sub {
+  font-size: 0.68rem;
+  color: var(--c-muted);
+  margin-top: 0.1rem;
+  font-family: 'Source Sans 3', system-ui, sans-serif;
 }
-.qs-ring-fail {
-  border-color: #ef4444;
-  box-shadow: 0 0 28px var(--qs-ring-glow-fail);
+.c-section {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--c-muted);
+  margin: 0.4rem 0 0.45rem;
+  font-family: 'Source Sans 3', system-ui, sans-serif;
 }
-.qs-ring-idle { border-color: var(--qs-ring-idle); }
-.qs-ring-status {
-  font-size: 1.15rem;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  color: var(--qs-text-strong);
-}
-.qs-ring-sub {
-  font-size: 0.7rem;
-  color: var(--qs-muted);
-  margin-top: 0.15rem;
-}
-.qs-layer-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.45rem;
-  margin-bottom: 1rem;
-}
-.qs-layer-row {
+.c-layer-list { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 0.85rem; }
+.c-layer-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
-  padding: 0.5rem 0.6rem;
+  padding: 0.48rem 0.6rem;
   border-radius: 10px;
-  background: var(--qs-inset);
-  border: 1px solid var(--qs-border);
+  background: var(--c-inset);
+  border: 1px solid var(--c-border);
   font-size: 0.78rem;
+  font-family: 'Source Sans 3', system-ui, sans-serif;
 }
-.qs-layer-name {
-  font-weight: 600;
-  color: var(--qs-muted-strong);
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 0.72rem;
-}
-.qs-layer-val { font-weight: 600; font-size: 0.72rem; }
-.qs-ok { color: var(--qs-pass); }
-.qs-wn { color: var(--qs-warn); }
-.qs-fl { color: var(--qs-fail); }
-.qs-sk { color: var(--qs-muted); }
-.qs-section {
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--qs-muted);
-  margin: 0.35rem 0 0.45rem;
-}
-.qs-reason {
+.c-layer-name { font-weight: 600; color: var(--c-muted-strong); font-size: 0.74rem; }
+.c-layer-val { font-weight: 650; font-size: 0.74rem; }
+.c-ok { color: var(--c-pass); }
+.c-wn { color: var(--c-warn); }
+.c-fl { color: var(--c-fail); }
+.c-sk { color: var(--c-muted); }
+.c-reason {
   display: flex;
   gap: 0.45rem;
   align-items: flex-start;
   padding: 0.28rem 0;
-  font-size: 0.8rem;
-  color: var(--qs-text);
-  line-height: 1.4;
+  font-size: 0.84rem;
+  color: var(--c-text);
+  line-height: 1.45;
+  font-family: 'Source Sans 3', system-ui, sans-serif;
 }
-.qs-dot {
+.c-dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #34d399;
+  background: var(--c-accent);
   margin-top: 0.4rem;
   flex-shrink: 0;
 }
-.qs-idle-hint {
+.c-idle-hint {
   text-align: center;
-  padding: 0.5rem 0.25rem 0.25rem;
-  color: var(--qs-muted);
-  font-size: 0.82rem;
-  line-height: 1.5;
+  padding: 0.35rem 0.4rem 0.75rem;
+  color: var(--c-muted);
+  font-size: 0.86rem;
+  line-height: 1.55;
+  font-family: 'Source Serif 4', Georgia, serif;
 }
-.qs-meta-grid {
+.c-meta-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0.45rem;
+  gap: 0.4rem;
   margin-top: 0.85rem;
 }
-.qs-meta-card {
-  padding: 0.5rem 0.55rem;
+.c-meta-card {
+  padding: 0.48rem 0.55rem;
   border-radius: 10px;
-  background: var(--qs-inset);
-  border: 1px solid var(--qs-border);
+  background: var(--c-inset);
+  border: 1px solid var(--c-border);
 }
-.qs-meta-card .k {
-  font-size: 0.65rem;
-  color: var(--qs-muted);
-  font-weight: 600;
+.c-meta-card .k {
+  font-size: 0.62rem;
+  color: var(--c-muted);
+  font-weight: 650;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
+  font-family: 'Source Sans 3', system-ui, sans-serif;
 }
-.qs-meta-card .v {
-  font-size: 0.82rem;
-  color: var(--qs-text-strong);
+.c-meta-card .v {
+  font-size: 0.8rem;
+  color: var(--c-text-strong);
   font-weight: 600;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  margin-top: 0.15rem;
+  margin-top: 0.12rem;
 }
 
-.qs-chips-label {
-  font-size: 0.7rem;
-  color: var(--qs-muted);
-  font-weight: 600;
-  margin: 0.35rem 0 0.25rem;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
+/* Sidebar */
 section[data-testid="stSidebar"] {
-  background: var(--qs-sidebar) !important;
-  border-right: 1px solid var(--qs-border);
+  background: var(--c-sidebar) !important;
+  border-right: 1px solid var(--c-border);
 }
-section[data-testid="stSidebar"] .block-container {
-  padding-top: 1.25rem !important;
-}
-section[data-testid="stSidebar"] h1,
-section[data-testid="stSidebar"] h2,
-section[data-testid="stSidebar"] h3,
+section[data-testid="stSidebar"] .block-container { padding-top: 1.15rem !important; }
 section[data-testid="stSidebar"] label,
 section[data-testid="stSidebar"] p,
 section[data-testid="stSidebar"] span {
-  color: var(--qs-text) !important;
+  color: var(--c-text) !important;
 }
 
 .stButton > button {
   border-radius: 10px !important;
-  border: 1px solid var(--qs-border) !important;
-  background: var(--qs-btn-bg) !important;
-  color: var(--qs-text-strong) !important;
-  font-weight: 600 !important;
+  border: 1px solid var(--c-border) !important;
+  background: var(--c-surface) !important;
+  color: var(--c-text-strong) !important;
+  font-weight: 550 !important;
 }
 .stButton > button:hover {
-  border-color: var(--qs-pass-border) !important;
-  background: var(--qs-pass-bg) !important;
-  color: var(--qs-text-strong) !important;
+  border-color: var(--c-accent-border) !important;
+  background: var(--c-accent-soft) !important;
 }
 .stButton > button[kind="primary"] {
-  background: linear-gradient(135deg, #059669, #10b981) !important;
+  background: var(--c-accent) !important;
   border: none !important;
-  color: white !important;
+  color: #fff !important;
 }
 
 div[data-testid="stProgress"] > div {
-  background: var(--qs-track) !important;
+  background: var(--c-track) !important;
   border-radius: 999px !important;
 }
 div[data-testid="stProgress"] > div > div {
-  background: linear-gradient(90deg, #10b981, #34d399) !important;
+  background: var(--c-accent) !important;
 }
 div[data-testid="stExpander"] {
-  background: var(--qs-inset);
-  border-radius: 10px;
-  border: 1px solid var(--qs-border);
+  background: var(--c-inset);
+  border-radius: 12px;
+  border: 1px solid var(--c-border);
 }
 
-/* Chat input */
+/* Chat input — soft rounded Claude composer */
+div[data-testid="stChatInput"] {
+  max-width: 760px;
+  margin: 0 auto;
+}
 div[data-testid="stChatInput"] textarea {
-  color: var(--qs-text) !important;
-}
-</style>
-"""
-
-DARK_VARS = """
-<style>
-.stApp {
-  --qs-bg: #12141a;
-  --qs-surface: #1a1d24;
-  --qs-sidebar: #16181f;
-  --qs-inset: rgba(0,0,0,0.25);
-  --qs-border: rgba(255,255,255,0.06);
-  --qs-text: #e8eaed;
-  --qs-text-strong: #f8fafc;
-  --qs-muted: #6b7280;
-  --qs-muted-strong: #9ca3af;
-  --qs-pill-bg: rgba(255,255,255,0.04);
-  --qs-pass: #6ee7b7;
-  --qs-pass-bg: rgba(16, 185, 129, 0.12);
-  --qs-pass-border: rgba(52, 211, 153, 0.35);
-  --qs-warn: #fcd34d;
-  --qs-warn-bg: rgba(245, 158, 11, 0.12);
-  --qs-warn-border: rgba(251, 191, 36, 0.35);
-  --qs-fail: #fca5a5;
-  --qs-fail-bg: rgba(239, 68, 68, 0.12);
-  --qs-fail-border: rgba(248, 113, 113, 0.35);
-  --qs-track: rgba(255,255,255,0.08);
-  --qs-logo-glow: rgba(52, 211, 153, 0.25);
-  --qs-artifact-border: rgba(52, 211, 153, 0.18);
-  --qs-artifact-shadow: 0 0 40px rgba(16, 185, 129, 0.06);
-  --qs-artifact-head: rgba(16, 185, 129, 0.06);
-  --qs-ring-idle: #374151;
-  --qs-ring-bg: radial-gradient(circle at 40% 35%, rgba(255,255,255,0.04), transparent 55%);
-  --qs-ring-glow-pass: rgba(16, 185, 129, 0.25);
-  --qs-ring-glow-warn: rgba(245, 158, 11, 0.2);
-  --qs-ring-glow-fail: rgba(239, 68, 68, 0.2);
-  --qs-btn-bg: rgba(255,255,255,0.04);
-  --qs-shadow-soft: none;
-  color: #e8eaed;
-  background: #12141a;
+  color: var(--c-text) !important;
+  font-family: 'Source Sans 3', system-ui, sans-serif !important;
 }
 </style>
 """
@@ -539,75 +529,103 @@ DARK_VARS = """
 LIGHT_VARS = """
 <style>
 .stApp {
-  --qs-bg: #f7f6f3;
-  --qs-surface: #ffffff;
-  --qs-sidebar: #f0eeea;
-  --qs-inset: #f3f2ef;
-  --qs-border: rgba(15, 23, 42, 0.08);
-  --qs-text: #1f2937;
-  --qs-text-strong: #0f172a;
-  --qs-muted: #94a3b8;
-  --qs-muted-strong: #64748b;
-  --qs-pill-bg: rgba(15, 23, 42, 0.04);
-  --qs-pass: #059669;
-  --qs-pass-bg: rgba(16, 185, 129, 0.12);
-  --qs-pass-border: rgba(16, 185, 129, 0.35);
-  --qs-warn: #b45309;
-  --qs-warn-bg: rgba(245, 158, 11, 0.14);
-  --qs-warn-border: rgba(245, 158, 11, 0.35);
-  --qs-fail: #dc2626;
-  --qs-fail-bg: rgba(239, 68, 68, 0.1);
-  --qs-fail-border: rgba(239, 68, 68, 0.3);
-  --qs-track: rgba(15, 23, 42, 0.08);
-  --qs-logo-glow: rgba(16, 185, 129, 0.2);
-  --qs-artifact-border: rgba(16, 185, 129, 0.22);
-  --qs-artifact-shadow: 0 12px 32px rgba(15, 23, 42, 0.06);
-  --qs-artifact-head: rgba(16, 185, 129, 0.08);
-  --qs-ring-idle: #d1d5db;
-  --qs-ring-bg: radial-gradient(circle at 40% 35%, rgba(16, 185, 129, 0.06), transparent 55%);
-  --qs-ring-glow-pass: rgba(16, 185, 129, 0.18);
-  --qs-ring-glow-warn: rgba(245, 158, 11, 0.15);
-  --qs-ring-glow-fail: rgba(239, 68, 68, 0.12);
-  --qs-btn-bg: #ffffff;
-  --qs-shadow-soft: 0 8px 24px rgba(15, 23, 42, 0.04);
-  color: #1f2937;
+  /* Claude light: cream / warm paper */
+  --c-bg: #f5f0e8;
+  --c-surface: #fffcf7;
+  --c-sidebar: #efe9df;
+  --c-inset: #f3ede4;
+  --c-border: rgba(60, 40, 20, 0.1);
+  --c-text: #2c2418;
+  --c-text-strong: #1a1510;
+  --c-muted: #9a8b78;
+  --c-muted-strong: #6b5d4d;
+  --c-chip-bg: rgba(60, 40, 20, 0.04);
+  --c-user-bg: #ebe4d8;
+  --c-accent: #c96442;
+  --c-accent-text: #9a4128;
+  --c-accent-soft: rgba(201, 100, 66, 0.12);
+  --c-accent-border: rgba(201, 100, 66, 0.32);
+  --c-accent-glow: rgba(201, 100, 66, 0.28);
+  --c-pass: #3d7a5c;
+  --c-pass-bg: rgba(61, 122, 92, 0.12);
+  --c-pass-border: rgba(61, 122, 92, 0.3);
+  --c-warn: #a66a1a;
+  --c-warn-bg: rgba(166, 106, 26, 0.12);
+  --c-warn-border: rgba(166, 106, 26, 0.3);
+  --c-fail: #b5453a;
+  --c-fail-bg: rgba(181, 69, 58, 0.1);
+  --c-fail-border: rgba(181, 69, 58, 0.28);
+  --c-track: rgba(60, 40, 20, 0.1);
+  --c-shadow: 0 10px 30px rgba(60, 40, 20, 0.06);
+  --c-artifact-head: rgba(201, 100, 66, 0.06);
+  --c-ring-bg: radial-gradient(circle at 40% 30%, rgba(201,100,66,0.06), transparent 60%);
+  color: #2c2418;
   background:
-    radial-gradient(900px 400px at 10% -5%, rgba(16, 185, 129, 0.07), transparent 50%),
-    radial-gradient(700px 320px at 90% 0%, rgba(99, 102, 241, 0.05), transparent 45%),
-    #f7f6f3;
+    radial-gradient(800px 360px at 50% -10%, rgba(201, 100, 66, 0.06), transparent 55%),
+    #f5f0e8;
 }
-/* Streamlit light chrome tweaks */
-section[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p,
-section[data-testid="stSidebar"] label {
-  color: #1f2937 !important;
-}
-div[data-testid="stChatInput"] {
-  background: transparent;
+</style>
+"""
+
+DARK_VARS = """
+<style>
+.stApp {
+  /* Claude dark: warm evening, not cold blue-black */
+  --c-bg: #1c1917;
+  --c-surface: #26211d;
+  --c-sidebar: #211d19;
+  --c-inset: rgba(0,0,0,0.28);
+  --c-border: rgba(255, 240, 220, 0.08);
+  --c-text: #e8e0d5;
+  --c-text-strong: #f5f0e8;
+  --c-muted: #8a7f72;
+  --c-muted-strong: #b0a497;
+  --c-chip-bg: rgba(255, 240, 220, 0.05);
+  --c-user-bg: #322c26;
+  --c-accent: #d47855;
+  --c-accent-text: #f0b89a;
+  --c-accent-soft: rgba(212, 120, 85, 0.14);
+  --c-accent-border: rgba(212, 120, 85, 0.35);
+  --c-accent-glow: rgba(212, 120, 85, 0.3);
+  --c-pass: #7dba98;
+  --c-pass-bg: rgba(125, 186, 152, 0.12);
+  --c-pass-border: rgba(125, 186, 152, 0.32);
+  --c-warn: #e0b06a;
+  --c-warn-bg: rgba(224, 176, 106, 0.12);
+  --c-warn-border: rgba(224, 176, 106, 0.3);
+  --c-fail: #e08a80;
+  --c-fail-bg: rgba(224, 138, 128, 0.12);
+  --c-fail-border: rgba(224, 138, 128, 0.3);
+  --c-track: rgba(255, 240, 220, 0.1);
+  --c-shadow: 0 12px 36px rgba(0,0,0,0.35);
+  --c-artifact-head: rgba(212, 120, 85, 0.08);
+  --c-ring-bg: radial-gradient(circle at 40% 30%, rgba(212,120,85,0.08), transparent 60%);
+  color: #e8e0d5;
+  background:
+    radial-gradient(700px 320px at 50% -8%, rgba(212, 120, 85, 0.08), transparent 50%),
+    #1c1917;
 }
 </style>
 """
 
 
 def get_theme() -> ThemeName:
-    t = st.session_state.get("theme", "dark")
-    return "light" if t == "light" else "dark"
+    t = st.session_state.get("theme", "light")
+    return "dark" if t == "dark" else "light"
 
 
 def set_theme(theme: ThemeName) -> None:
-    """Request a theme change. Applied at the start of the next run (before widgets)."""
     st.session_state._pending_theme = theme
 
 
 def apply_pending_theme() -> None:
-    """Sync theme + radio state before any theme widgets are instantiated."""
     if "theme" not in st.session_state:
-        st.session_state.theme = "dark"
+        st.session_state.theme = "light"  # Claude default: warm light
     pending = st.session_state.pop("_pending_theme", None)
     if pending in ("dark", "light"):
         st.session_state.theme = pending
-    # Always align radio label with theme before st.radio(..., key="theme_radio")
     st.session_state.theme_radio = (
-        "☀️ Soft light" if get_theme() == "light" else "🌙 Dark"
+        "☀️ Light" if get_theme() == "light" else "🌙 Dark"
     )
 
 
@@ -654,7 +672,7 @@ def process_turn(
     client = get_client()
     store = get_store()
 
-    with st.spinner("Getting AI answer…"):
+    with st.spinner("Thinking…"):
         if enable_ab and client.has_api_key:
             model_a = client.model
             model_b = client.secondary_model()
@@ -673,7 +691,7 @@ def process_turn(
                 st.session_state.last_gate = None
                 st.session_state.last_meta = {}
                 return
-            with st.spinner("Gating A/B candidates…"):
+            with st.spinner("Scoring quality gate…"):
                 gate_a = evaluate_answer(
                     question,
                     resp_a.answer or "",
@@ -728,7 +746,7 @@ def process_turn(
                 st.session_state.last_gate = None
                 st.session_state.last_meta = {}
                 return
-            with st.spinner("Running quality gate…"):
+            with st.spinner("Scoring quality gate…"):
                 gate = evaluate_answer(
                     question,
                     answer,
@@ -739,7 +757,7 @@ def process_turn(
 
     repair_meta: dict[str, Any] = {"attempted": False}
     if enable_repair and gate.status in ("WARN", "FAIL"):
-        with st.spinner("Repair loop: rewriting + re-gating…"):
+        with st.spinner("Repairing answer…"):
             outcome = try_repair(
                 question,
                 answer,
@@ -807,7 +825,7 @@ def session_pass_rate(stats: dict) -> float:
 
 
 # ---------------------------------------------------------------------------
-# UI pieces
+# UI
 # ---------------------------------------------------------------------------
 
 
@@ -817,65 +835,86 @@ def _layer_status(gate: dict, key: str) -> tuple[str, str]:
     layer = layers.get(key) or {}
     sc = scores.get(key) or {}
     st_val = (layer.get("status") or "").upper()
-
     if key == "L3" and (sc.get("skipped") or sc.get("applicable") is False):
-        return "off", "qs-sk"
+        return "off", "c-sk"
     if key == "L2" and sc.get("applicable") is False:
-        return "n/a", "qs-sk"
+        return "n/a", "c-sk"
     if st_val == "PASS":
-        return "PASS", "qs-ok"
+        return "PASS", "c-ok"
     if st_val == "WARN":
-        return "WARN", "qs-wn"
+        return "WARN", "c-wn"
     if st_val == "FAIL":
-        return "FAIL", "qs-fl"
-    return "—", "qs-sk"
+        return "FAIL", "c-fl"
+    return "—", "c-sk"
 
 
 def render_status_chip(gate: dict, meta: dict) -> None:
     status = (gate.get("status") or "PASS").upper()
     cls = {
-        "PASS": "qs-status-pass",
-        "WARN": "qs-status-warn",
-        "FAIL": "qs-status-fail",
-    }.get(status, "qs-status-warn")
+        "PASS": "c-status-pass",
+        "WARN": "c-status-warn",
+        "FAIL": "c-status-fail",
+    }.get(status, "c-status-warn")
     icon = {"PASS": "✓", "WARN": "!", "FAIL": "✕"}.get(status, "·")
     latency = meta.get("latency_ms")
     lat = f"{float(latency):.0f} ms" if latency is not None else "—"
     backend = meta.get("backend") or "—"
     st.markdown(
-        f'<div class="qs-status-chip {cls}">'
+        f'<div class="c-status {cls}">'
         f"{icon} {esc(status)}"
-        f'<span class="qs-status-meta">· Quality Gate · {esc(lat)} · {esc(backend)}</span>'
+        f'<span class="c-status-meta">· Quality gate · {esc(lat)} · {esc(backend)}</span>'
         f"</div>",
         unsafe_allow_html=True,
     )
+
+
+def render_messages() -> None:
+    """Claude-style flat messages (custom HTML, not SMS bubbles)."""
+    for msg in st.session_state.messages:
+        if msg["role"] == "user":
+            st.markdown(
+                f'<div class="c-msg-user-wrap"><div class="c-msg-user">{esc(msg["content"])}</div></div>',
+                unsafe_allow_html=True,
+            )
+        else:
+            body = esc(msg["content"]).replace("\n", "<br/>")
+            st.markdown(
+                f"""
+<div class="c-msg-assistant">
+  <div class="c-msg-role">QA Sentinel</div>
+  <div class="c-body">{body}</div>
+</div>
+""",
+                unsafe_allow_html=True,
+            )
+            if msg.get("gate"):
+                render_status_chip(msg["gate"], msg.get("meta") or {})
 
 
 def render_artifact_panel(gate: dict | None, meta: dict | None) -> None:
     if not gate:
         st.markdown(
             """
-<div class="qs-artifact">
-  <div class="qs-artifact-head">
-    <span class="qs-artifact-title">Quality Gate</span>
-    <span class="qs-artifact-badge qs-badge-idle">Idle</span>
+<div class="c-artifact">
+  <div class="c-artifact-head">
+    <span class="c-artifact-title">Quality Gate</span>
+    <span class="c-badge c-badge-idle">Idle</span>
   </div>
-  <div class="qs-artifact-body">
-    <div class="qs-ring-wrap">
-      <div class="qs-ring qs-ring-idle">
-        <div class="qs-ring-status" style="font-size:0.95rem;opacity:0.55">—</div>
-        <div class="qs-ring-sub">awaiting turn</div>
+  <div class="c-artifact-body">
+    <div class="c-ring-wrap">
+      <div class="c-ring">
+        <div class="c-ring-status" style="opacity:0.45;font-size:0.95rem">—</div>
+        <div class="c-ring-sub">awaiting turn</div>
       </div>
     </div>
-    <div class="qs-idle-hint">
-      Ask a testing question.<br/>
-      Every answer is scored here as an <b>artifact</b> — L1 · L2 · L3.
+    <div class="c-idle-hint">
+      Your answer will open here as an artifact — scored by L1 · L2 · L3.
     </div>
-    <div class="qs-section">Layers</div>
-    <div class="qs-layer-list">
-      <div class="qs-layer-row"><span class="qs-layer-name">L1 Offline</span><span class="qs-layer-val qs-sk">—</span></div>
-      <div class="qs-layer-row"><span class="qs-layer-name">L2 Golden</span><span class="qs-layer-val qs-sk">—</span></div>
-      <div class="qs-layer-row"><span class="qs-layer-name">L3 AI Judge</span><span class="qs-layer-val qs-sk">off</span></div>
+    <div class="c-section">Layers</div>
+    <div class="c-layer-list">
+      <div class="c-layer-row"><span class="c-layer-name">L1 Offline</span><span class="c-layer-val c-sk">—</span></div>
+      <div class="c-layer-row"><span class="c-layer-name">L2 Golden</span><span class="c-layer-val c-sk">—</span></div>
+      <div class="c-layer-row"><span class="c-layer-name">L3 AI Judge</span><span class="c-layer-val c-sk">off</span></div>
     </div>
   </div>
 </div>
@@ -886,18 +925,18 @@ def render_artifact_panel(gate: dict | None, meta: dict | None) -> None:
 
     status = (gate.get("status") or "PASS").upper()
     ring_cls = {
-        "PASS": "qs-ring-pass",
-        "WARN": "qs-ring-warn",
-        "FAIL": "qs-ring-fail",
-    }.get(status, "qs-ring-idle")
+        "PASS": "c-ring-pass",
+        "WARN": "c-ring-warn",
+        "FAIL": "c-ring-fail",
+    }.get(status, "")
     badge_cls = {
-        "PASS": "qs-badge-pass",
-        "WARN": "qs-badge-warn",
-        "FAIL": "qs-badge-fail",
-    }.get(status, "qs-badge-idle")
+        "PASS": "c-badge-pass",
+        "WARN": "c-badge-warn",
+        "FAIL": "c-badge-fail",
+    }.get(status, "c-badge-idle")
 
     layers_html = ""
-    layer_labels = {
+    labels = {
         "L1": "L1 Offline policy",
         "L2": "L2 Golden match",
         "L3": "L3 AI judge",
@@ -905,22 +944,20 @@ def render_artifact_panel(gate: dict | None, meta: dict | None) -> None:
     for key in ("L1", "L2", "L3"):
         val, cls = _layer_status(gate, key)
         layers_html += (
-            f'<div class="qs-layer-row">'
-            f'<span class="qs-layer-name">{esc(layer_labels[key])}</span>'
-            f'<span class="qs-layer-val {cls}">{esc(val)}</span>'
+            f'<div class="c-layer-row">'
+            f'<span class="c-layer-name">{esc(labels[key])}</span>'
+            f'<span class="c-layer-val {cls}">{esc(val)}</span>'
             f"</div>"
         )
 
     reasons_html = ""
     for r in (gate.get("reasons") or [])[:6]:
         reasons_html += (
-            f'<div class="qs-reason"><span class="qs-dot"></span>'
-            f"<span>{esc(r)}</span></div>"
+            f'<div class="c-reason"><span class="c-dot"></span><span>{esc(r)}</span></div>'
         )
     if not reasons_html:
         reasons_html = (
-            '<div class="qs-reason"><span class="qs-dot"></span>'
-            "<span>No reasons recorded</span></div>"
+            '<div class="c-reason"><span class="c-dot"></span><span>No reasons</span></div>'
         )
 
     meta = meta or {}
@@ -931,6 +968,7 @@ def render_artifact_panel(gate: dict | None, meta: dict | None) -> None:
     model = meta.get("model") or "—"
     backend = meta.get("backend") or "—"
 
+    extras_html = ""
     extras = []
     ab = meta.get("ab") or {}
     if ab.get("enabled"):
@@ -945,39 +983,38 @@ def render_artifact_panel(gate: dict | None, meta: dict | None) -> None:
             f"{esc(repair.get('final_status'))}"
             + (" · improved" if repair.get("improved") else "")
         )
-    extras_html = ""
     if extras:
         extras_html = (
-            '<div class="qs-section">Extras</div>'
+            '<div class="c-section">Notes</div>'
             + "".join(
-                f'<div class="qs-reason"><span class="qs-dot"></span><span>{x}</span></div>'
+                f'<div class="c-reason"><span class="c-dot"></span><span>{x}</span></div>'
                 for x in extras
             )
         )
 
     st.markdown(
         f"""
-<div class="qs-artifact">
-  <div class="qs-artifact-head">
-    <span class="qs-artifact-title">Quality Gate</span>
-    <span class="qs-artifact-badge {badge_cls}">{esc(status)}</span>
+<div class="c-artifact">
+  <div class="c-artifact-head">
+    <span class="c-artifact-title">Quality Gate</span>
+    <span class="c-badge {badge_cls}">{esc(status)}</span>
   </div>
-  <div class="qs-artifact-body">
-    <div class="qs-ring-wrap">
-      <div class="qs-ring {ring_cls}">
-        <div class="qs-ring-status">{esc(status)}</div>
-        <div class="qs-ring-sub">{esc(backend)}</div>
+  <div class="c-artifact-body">
+    <div class="c-ring-wrap">
+      <div class="c-ring {ring_cls}">
+        <div class="c-ring-status">{esc(status)}</div>
+        <div class="c-ring-sub">{esc(backend)}</div>
       </div>
     </div>
-    <div class="qs-section">Layers</div>
-    <div class="qs-layer-list">{layers_html}</div>
-    <div class="qs-section">Key reasons</div>
+    <div class="c-section">Layers</div>
+    <div class="c-layer-list">{layers_html}</div>
+    <div class="c-section">Reasons</div>
     {reasons_html}
     {extras_html}
-    <div class="qs-meta-grid">
-      <div class="qs-meta-card"><div class="k">Latency</div><div class="v">{esc(lat_s)}</div></div>
-      <div class="qs-meta-card"><div class="k">Tokens</div><div class="v">{esc(tok_s)}</div></div>
-      <div class="qs-meta-card" style="grid-column:1/-1"><div class="k">Model</div><div class="v">{esc(model)}</div></div>
+    <div class="c-meta-grid">
+      <div class="c-meta-card"><div class="k">Latency</div><div class="v">{esc(lat_s)}</div></div>
+      <div class="c-meta-card"><div class="k">Tokens</div><div class="v">{esc(tok_s)}</div></div>
+      <div class="c-meta-card" style="grid-column:1/-1"><div class="k">Model</div><div class="v">{esc(model)}</div></div>
     </div>
   </div>
 </div>
@@ -986,35 +1023,32 @@ def render_artifact_panel(gate: dict | None, meta: dict | None) -> None:
     )
 
 
-def render_topbar(client: ChatClient, meter: dict, pass_rate: float, stats: dict) -> None:
+def render_header(client: ChatClient, meter: dict, pass_rate: float, stats: dict) -> None:
     mode = (
-        '<span class="qs-pill qs-pill-live">● Live free-tier</span>'
+        '<span class="c-chip c-chip-accent">Live free-tier</span>'
         if client.has_api_key
-        else '<span class="qs-pill qs-pill-off">● Offline golden</span>'
+        else '<span class="c-chip">Offline golden</span>'
     )
     rate = (
-        f'<span class="qs-pill">Session {pass_rate:.0f}% PASS</span>'
+        f'<span class="c-chip">Session {pass_rate:.0f}% PASS</span>'
         if stats.get("total")
-        else '<span class="qs-pill">No gated turns yet</span>'
+        else ""
     )
-    tokens = f'<span class="qs-pill">{meter["tokens_remaining"]:,} tokens left</span>'
-    theme = get_theme()
-    theme_label = "Soft light" if theme == "light" else "Dark"
     st.markdown(
         f"""
-<div class="qs-topbar">
-  <div class="qs-brand">
-    <div class="qs-logo">🛡️</div>
+<div class="c-header">
+  <div class="c-brand">
+    <div class="c-mark">✦</div>
     <div>
-      <div class="qs-brand-name">QA Sentinel</div>
-      <div class="qs-brand-sub">Chat + quality gate artifact · {esc(theme_label)}</div>
+      <div class="c-title">QA Sentinel</div>
+      <div class="c-subtitle">Software-testing assistant · gated answers</div>
     </div>
   </div>
-  <div class="qs-top-meta">
+  <div class="c-header-right">
     {mode}
     {rate}
-    {tokens}
-    <span class="qs-pill">{esc(client.model)}</span>
+    <span class="c-chip">{meter["tokens_remaining"]:,} tokens</span>
+    <span class="c-chip">{esc(client.model)}</span>
   </div>
 </div>
 """,
@@ -1025,14 +1059,13 @@ def render_topbar(client: ChatClient, meter: dict, pass_rate: float, stats: dict
 def render_freebar(meter: dict) -> None:
     used = meter["tokens_used"]
     limit = meter["tokens_limit"] or 1
-    frac = min(1.0, used / limit) if limit else 0
-    pct = int(round(frac * 100))
+    pct = int(round(min(1.0, used / limit) * 100)) if limit else 0
     st.markdown(
         f"""
-<div class="qs-freebar">
-  <span class="qs-freebar-label">Free tier</span>
-  <div class="qs-freebar-track"><div class="qs-freebar-fill" style="width:{pct}%"></div></div>
-  <span class="qs-freebar-nums">{used:,} / {limit:,} · {meter['tokens_remaining']:,} left</span>
+<div class="c-freebar">
+  <span>Free tier</span>
+  <div class="c-freebar-track"><div class="c-freebar-fill" style="width:{pct}%"></div></div>
+  <span>{used:,} / {limit:,}</span>
 </div>
 """,
         unsafe_allow_html=True,
@@ -1040,9 +1073,8 @@ def render_freebar(meter: dict) -> None:
 
 
 def render_theme_toggle() -> ThemeName:
-    """Segmented theme control; returns current theme after update."""
     current = get_theme()
-    options = ["🌙 Dark", "☀️ Soft light"]
+    options = ["☀️ Light", "🌙 Dark"]
     choice = st.radio(
         "Theme",
         options,
@@ -1050,9 +1082,8 @@ def render_theme_toggle() -> ThemeName:
         label_visibility="collapsed",
         key="theme_radio",
     )
-    new_theme: ThemeName = "light" if "light" in str(choice).lower() else "dark"
+    new_theme: ThemeName = "dark" if "Dark" in str(choice) else "light"
     if new_theme != current:
-        # Safe: only update the non-widget key; radio already holds new_theme
         st.session_state.theme = new_theme
         st.rerun()
     return new_theme
@@ -1067,7 +1098,6 @@ EXAMPLE_PROMPTS = [
 
 
 def main() -> None:
-    # Must run before any theme widgets (radio key=theme_radio)
     apply_pending_theme()
     theme = get_theme()
     inject_css(theme)
@@ -1095,15 +1125,10 @@ def main() -> None:
     with st.sidebar:
         st.markdown("### Appearance")
         render_theme_toggle()
-        st.caption("Dark · Soft light (Design 1)")
+        st.caption("Claude-style warm light / evening dark")
         st.divider()
         st.markdown("### Settings")
-        st.caption("Gate options & red-team")
-        use_judge = st.toggle(
-            "AI-as-judge (L3)",
-            value=False,
-            help="Second free-tier call — AI inside the quality gate",
-        )
+        use_judge = st.toggle("AI-as-judge (L3)", value=False)
         enable_repair = st.toggle("Repair loop", value=False)
         enable_ab = st.toggle(
             "A/B dual models",
@@ -1111,7 +1136,7 @@ def main() -> None:
             disabled=not client.has_api_key,
         )
         st.divider()
-        st.markdown("**Red-team playground**")
+        st.markdown("**Red-team**")
         attacks = load_red_team_prompts(limit=5)
         for a in attacks:
             label = a["id"].replace("_", " ").replace("-", " ")
@@ -1132,66 +1157,53 @@ def main() -> None:
             st.session_state.last_gate = None
             st.session_state.last_meta = {}
             st.rerun()
-        st.caption(f"Model B: `{client.secondary_model()}`")
 
-    # Compact theme switch on main canvas (next to top bar)
-    t1, t2 = st.columns([5, 1.2])
-    with t1:
-        render_topbar(client, meter, pass_rate, stats)
-    with t2:
-        st.markdown('<div style="height:0.35rem"></div>', unsafe_allow_html=True)
-        current = get_theme()
-        if current == "dark":
-            if st.button("☀️ Light", key="theme_main_to_light", use_container_width=True):
-                set_theme("light")
-                st.rerun()
-        else:
+    h1, h2 = st.columns([5, 1.1])
+    with h1:
+        render_header(client, meter, pass_rate, stats)
+    with h2:
+        st.markdown('<div style="height:0.4rem"></div>', unsafe_allow_html=True)
+        if get_theme() == "light":
             if st.button("🌙 Dark", key="theme_main_to_dark", use_container_width=True):
                 set_theme("dark")
                 st.rerun()
+        else:
+            if st.button("☀️ Light", key="theme_main_to_light", use_container_width=True):
+                set_theme("light")
+                st.rerun()
 
-    chat_col, art_col = st.columns([1.55, 1], gap="medium")
+    chat_col, art_col = st.columns([1.55, 1], gap="large")
 
     with chat_col:
-        st.markdown(
-            '<div class="qs-session-label">Conversation</div>',
-            unsafe_allow_html=True,
-        )
-
         if not st.session_state.messages:
             st.markdown(
                 """
-<div class="qs-chat-shell">
-  <div class="qs-empty">
-    <div class="qs-empty-icon">🛡️</div>
-    <h3>Start a gated conversation</h3>
-    <p>
-      Ask a software-testing question. The answer appears here;
-      the <b>Quality Gate</b> artifact on the right scores every turn.
-    </p>
-  </div>
+<div class="c-welcome">
+  <div class="c-welcome-mark">✦</div>
+  <h2>How can I help you test today?</h2>
+  <p>
+    Ask about software testing. Every answer is quality-gated —
+    offline rules, golden metrics, optional AI judge.
+  </p>
 </div>
 """,
                 unsafe_allow_html=True,
             )
         else:
-            for msg in st.session_state.messages:
-                avatar = "🧑‍💻" if msg["role"] == "user" else "🛡️"
-                with st.chat_message(msg["role"], avatar=avatar):
-                    st.markdown(msg["content"])
-                    if msg["role"] == "assistant" and msg.get("gate"):
-                        render_status_chip(msg["gate"], msg.get("meta") or {})
+            render_messages()
 
-        render_freebar(meter)
+        if st.session_state.messages:
+            render_freebar(meter)
 
         st.markdown(
-            '<div class="qs-chips-label">Try</div>',
+            '<div class="c-chips-label">Suggestions</div>',
             unsafe_allow_html=True,
         )
-        chip_cols = st.columns(4)
+        chip_cols = st.columns(2)
         for i, ex in enumerate(EXAMPLE_PROMPTS):
-            short = ex if len(ex) < 28 else ex[:25] + "…"
-            if chip_cols[i].button(short, key=f"chip_{i}", use_container_width=True):
+            short = ex if len(ex) < 48 else ex[:45] + "…"
+            col = chip_cols[i % 2]
+            if col.button(short, key=f"chip_{i}", use_container_width=True):
                 process_turn(
                     ex,
                     use_judge,
@@ -1206,10 +1218,10 @@ def main() -> None:
             st.session_state.last_meta,
         )
         if st.session_state.last_gate:
-            with st.expander("Full scores (JSON)"):
+            with st.expander("Scores detail"):
                 st.json(st.session_state.last_gate.get("scores") or {})
 
-    prompt = st.chat_input("Ask a software testing question…")
+    prompt = st.chat_input("Message QA Sentinel…")
     if prompt:
         process_turn(
             prompt,
