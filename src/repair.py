@@ -52,6 +52,7 @@ def try_repair(
     use_judge: bool = False,
     model: str | None = None,
     policy: dict[str, Any] | None = None,
+    free_tier: dict[str, Any] | None = None,
 ) -> RepairOutcome:
     """
     If gate is WARN/FAIL and live API is available, request one rewrite and re-gate.
@@ -112,6 +113,7 @@ def try_repair(
         use_judge=use_judge,
         judge_client=client if use_judge else None,
         policy=policy,
+        free_tier=free_tier,
     )
     improved = _status_rank(new_gate.status) < _status_rank(gate.status)
     # Prefer repaired answer only if not worse

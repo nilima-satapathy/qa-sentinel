@@ -133,6 +133,46 @@ def _p4_metrics():
     return mod
 
 
+def free_tier_exhausted(free_tier: dict[str, Any] | None) -> bool:
+    """True when daily free tokens or requests are used up."""
+    if not free_tier:
+        return False
+    tok_left = int(free_tier.get("tokens_remaining") or 0)
+    req_left = int(free_tier.get("requests_remaining") or 0)
+    return tok_left <= 0 or req_left <= 0
+
+
+def should_run_l2(
+    policy: dict[str, Any],
+    *,
+    free_tier: dict[str, Any] | None = None,
+    force_l2: bool | None = None,
+) -> tuple[bool, str]:
+    """
+    L2 (golden) is active only when free-tier credits are exhausted.
+
+    While free tokens/requests remain, L2 stays inactive.
+    If free_tier is not provided (unit tests / batch CI), L2 runs by default
+    unless policy forces the free-tier gate and no meter is present.
+    """
+    if force_l2 is True:
+        return True, "forced on"
+    if force_l2 is False:
+        return False, "forced off"
+
+    only_when_exhausted = policy.get("l2_only_when_free_tier_exhausted", True)
+    if not only_when_exhausted:
+        return True, "policy always-on"
+
+    if free_tier is None:
+        # No live meter (tests/batch): keep L2 available
+        return True, "no free-tier meter (offline/eval default)"
+
+    if free_tier_exhausted(free_tier):
+        return True, "free-tier exhausted"
+    return False, "free-tier credits remaining — L2 inactive"
+
+
 def evaluate_l2(question: str, answer: str, policy: dict[str, Any]) -> tuple[Status, list[str], dict, str | None]:
     m = _p4_metrics()
     must_include_score = m.must_include_score
@@ -273,8 +313,14 @@ def evaluate_answer(
     use_judge: bool = False,
     judge_client: ChatClient | None = None,
     policy: dict[str, Any] | None = None,
+    free_tier: dict[str, Any] | None = None,
+    force_l2: bool | None = None,
 ) -> GateResult:
-    """Run L1+L2(+L3) and aggregate status."""
+    """Run L1+L2(+L3) and aggregate status.
+
+    L2 (golden) runs only when free-tier credits are exhausted, unless
+    free_tier is omitted (tests/batch) or force_l2 is set.
+    """
     pol = policy or load_policy()
     reasons: list[str] = []
     layers: dict[str, Any] = {}
@@ -286,12 +332,27 @@ def evaluate_answer(
     reasons.extend(r1)
     status = s1
 
-    s2, r2, sc2, gid = evaluate_l2(question, answer, pol)
-    layers["L2"] = {"status": s2, "scores": sc2}
-    scores["L2"] = sc2
-    reasons.extend(r2)
-    if sc2.get("applicable"):
-        status = _worst(status, s2)
+    run_l2, l2_why = should_run_l2(pol, free_tier=free_tier, force_l2=force_l2)
+    gid: str | None = None
+    if run_l2:
+        s2, r2, sc2, gid = evaluate_l2(question, answer, pol)
+        sc2 = {**sc2, "activation": l2_why}
+        layers["L2"] = {"status": s2, "scores": sc2}
+        scores["L2"] = sc2
+        reasons.extend(r2)
+        if sc2.get("applicable"):
+            status = _worst(status, s2)
+    else:
+        s2, r2, sc2 = "PASS", [f"L2: inactive ({l2_why})"], {
+            "applicable": False,
+            "skipped": True,
+            "activation": l2_why,
+            "tokens_remaining": (free_tier or {}).get("tokens_remaining"),
+            "requests_remaining": (free_tier or {}).get("requests_remaining"),
+        }
+        layers["L2"] = {"status": s2, "scores": sc2}
+        scores["L2"] = sc2
+        reasons.extend(r2)
 
     if use_judge:
         s3, r3, sc3 = evaluate_l3_judge(question, answer, pol, judge_client)

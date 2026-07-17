@@ -3,7 +3,14 @@
 from __future__ import annotations
 
 from src.chat_client import ChatClient, ChatResponse, match_golden_case
-from src.quality_gate import GateResult, evaluate_answer, evaluate_l1, evaluate_l2, load_policy
+from src.quality_gate import (
+    GateResult,
+    evaluate_answer,
+    evaluate_l1,
+    evaluate_l2,
+    load_policy,
+    should_run_l2,
+)
 from src.repair import pick_ab_winner, should_repair, try_repair
 from src.store import TurnStore
 
@@ -70,6 +77,46 @@ def test_l2_unrelated_question_not_forced():
     # No strong golden hit → L2 not applicable (does not fail on wrong domain alone)
     assert scores.get("applicable") is False
     assert gid is None
+
+
+def test_l2_inactive_when_free_credits_remain():
+    run, why = should_run_l2(
+        load_policy(),
+        free_tier={"tokens_remaining": 100_000, "requests_remaining": 1000},
+    )
+    assert run is False
+    assert "remaining" in why.lower()
+
+    gate = evaluate_answer(
+        FLAKY_Q,
+        "A flaky test is intermittent and harms CI trust and pipelines.",
+        use_judge=False,
+        free_tier={"tokens_remaining": 50_000, "requests_remaining": 500},
+    )
+    assert gate.scores["L2"].get("skipped") is True
+    assert gate.scores["L2"].get("applicable") is False
+    assert any("inactive" in r.lower() for r in gate.reasons)
+
+
+def test_l2_active_when_free_credits_exhausted():
+    run, why = should_run_l2(
+        load_policy(),
+        free_tier={"tokens_remaining": 0, "requests_remaining": 100},
+    )
+    assert run is True
+    assert "exhausted" in why.lower()
+
+    client = ChatClient(api_key="")
+    client.api_key = ""
+    r = client.complete(FLAKY_Q)
+    gate = evaluate_answer(
+        FLAKY_Q,
+        r.answer,
+        use_judge=False,
+        free_tier={"tokens_remaining": 0, "requests_remaining": 0},
+    )
+    assert gate.scores["L2"].get("applicable") is True
+    assert gate.golden_case_id == "qa-002"
 
 
 def test_gate_fail_short_answer():

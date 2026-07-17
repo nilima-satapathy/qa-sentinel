@@ -790,6 +790,9 @@ def process_turn(
 ) -> None:
     client = get_client()
     store = get_store()
+    policy = load_policy()
+    # Snapshot BEFORE this turn's usage — L2 only when free tier already exhausted
+    free_tier = store.free_tier_snapshot(policy)
 
     with st.spinner("Thinking…"):
         if enable_ab and client.has_api_key:
@@ -816,12 +819,16 @@ def process_turn(
                     resp_a.answer or "",
                     use_judge=use_judge,
                     judge_client=client if use_judge else None,
+                    policy=policy,
+                    free_tier=free_tier,
                 )
                 gate_b = evaluate_answer(
                     question,
                     resp_b.answer or "",
                     use_judge=use_judge,
                     judge_client=client if use_judge else None,
+                    policy=policy,
+                    free_tier=free_tier,
                 )
             pick = pick_ab_winner(
                 resp_a.answer or "",
@@ -871,6 +878,8 @@ def process_turn(
                     answer,
                     use_judge=use_judge,
                     judge_client=client if use_judge else None,
+                    policy=policy,
+                    free_tier=free_tier,
                 )
             _track_usage(store, resp, gate, use_judge)
 
@@ -884,6 +893,8 @@ def process_turn(
                 client,
                 use_judge=use_judge,
                 model=resp.model if resp.backend == "openai" else None,
+                policy=policy,
+                free_tier=free_tier,
             )
         repair_meta = {
             "attempted": outcome.attempted,
