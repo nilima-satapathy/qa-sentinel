@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
-from src.chat_client import ChatClient, ChatResponse
-from src.quality_gate import GateResult, evaluate_answer, evaluate_l1, load_policy
+from src.chat_client import ChatClient, ChatResponse, match_golden_case
+from src.quality_gate import GateResult, evaluate_answer, evaluate_l1, evaluate_l2, load_policy
 from src.repair import pick_ab_winner, should_repair, try_repair
 from src.store import TurnStore
 
 
 FLAKY_Q = "What is a flaky test, and why is it harmful in CI?"
+FLAKY_PARAPHRASE = "Why are flaky tests bad in CI pipelines?"
 
 
 def test_golden_fallback_flaky():
@@ -36,6 +37,39 @@ def test_gate_pass_on_golden_answer():
     assert gate.status in ("PASS", "WARN")
     assert gate.golden_case_id == "qa-002"
     assert gate.scores["L2"]["applicable"] is True
+    assert gate.scores["L2"]["match_mode"] in ("exact", "normalized")
+
+
+def test_l2_broad_match_paraphrase():
+    case, score, mode = match_golden_case(FLAKY_PARAPHRASE, min_score=0.32)
+    assert case is not None
+    assert case["id"] == "qa-002"
+    assert mode == "fuzzy"
+    assert score >= 0.32
+
+    # Offline golden fallback also accepts paraphrase
+    client = ChatClient(api_key="")
+    client.api_key = ""
+    r = client.complete(FLAKY_PARAPHRASE)
+    assert r.backend == "golden"
+    assert r.raw.get("match_mode") == "fuzzy"
+
+    gate = evaluate_answer(FLAKY_PARAPHRASE, r.answer, use_judge=False)
+    assert gate.scores["L2"]["applicable"] is True
+    assert gate.golden_case_id == "qa-002"
+    assert gate.scores["L2"]["match_mode"] == "fuzzy"
+    assert any("broad match" in x.lower() for x in gate.reasons)
+
+
+def test_l2_unrelated_question_not_forced():
+    status, reasons, scores, gid = evaluate_l2(
+        "What is the capital of France?",
+        "Paris is the capital of France and a major European city with museums.",
+        load_policy(),
+    )
+    # No strong golden hit → L2 not applicable (does not fail on wrong domain alone)
+    assert scores.get("applicable") is False
+    assert gid is None
 
 
 def test_gate_fail_short_answer():

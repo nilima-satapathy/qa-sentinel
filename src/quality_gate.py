@@ -11,7 +11,7 @@ from typing import Any, Literal
 
 import yaml
 
-from src.chat_client import ChatClient, find_golden_case
+from src.chat_client import ChatClient, match_golden_case
 from src.paths import ROOT, ensure_import_paths
 
 Status = Literal["PASS", "WARN", "FAIL"]
@@ -139,9 +139,16 @@ def evaluate_l2(question: str, answer: str, policy: dict[str, Any]) -> tuple[Sta
     must_not_include_violations = m.must_not_include_violations
     reference_overlap_score = m.reference_overlap_score
 
-    case = find_golden_case(question)
+    # Broad golden match: exact → normalized → fuzzy token similarity
+    min_match = float(policy.get("l2_match_min") or 0.32)
+    case, match_score, match_mode = match_golden_case(question, min_score=min_match)
     if not case:
-        return "PASS", [], {"applicable": False}, None
+        return "PASS", [], {
+            "applicable": False,
+            "match_score": round(match_score, 4),
+            "match_mode": None,
+            "match_min": min_match,
+        }, None
 
     mi = must_include_score(answer, case.get("must_include") or [])
     ov = reference_overlap_score(answer, case.get("reference_answer") or "")
@@ -151,15 +158,33 @@ def evaluate_l2(question: str, answer: str, policy: dict[str, Any]) -> tuple[Sta
     ov_pass = float(policy.get("overlap_pass") or 0.12)
     ov_warn = float(policy.get("overlap_warn") or 0.06)
 
+    # Slightly looser bands for fuzzy (paraphrased) questions
+    if match_mode == "fuzzy":
+        mi_pass = max(0.25, mi_pass - 0.08)
+        mi_warn = max(0.15, mi_warn - 0.08)
+        ov_pass = max(0.06, ov_pass - 0.03)
+        ov_warn = max(0.03, ov_warn - 0.02)
+
     scores = {
         "applicable": True,
         "must_include": round(mi, 4),
         "reference_overlap": round(ov, 4),
         "must_not_violations": viol,
         "case_id": case["id"],
+        "match_mode": match_mode,
+        "match_score": round(match_score, 4),
+        "golden_question": case.get("question"),
     }
     reasons: list[str] = []
     status: Status = "PASS"
+
+    if match_mode == "fuzzy":
+        reasons.append(
+            f"L2: broad match → {case['id']} "
+            f"(similarity {match_score:.0%}, min {min_match:.0%})"
+        )
+    elif match_mode == "normalized":
+        reasons.append(f"L2: normalized match → {case['id']}")
 
     if viol:
         status = "FAIL"

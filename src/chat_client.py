@@ -4,10 +4,11 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import requests
 from dotenv import load_dotenv
@@ -15,6 +16,101 @@ from dotenv import load_dotenv
 from src.paths import ensure_import_paths, eval_root
 
 load_dotenv()
+
+# Tokens ignored when fuzzy-matching user questions to golden cases
+_STOPWORDS = frozenset(
+    {
+        "a",
+        "an",
+        "the",
+        "is",
+        "are",
+        "was",
+        "were",
+        "be",
+        "been",
+        "being",
+        "and",
+        "or",
+        "but",
+        "if",
+        "then",
+        "so",
+        "to",
+        "of",
+        "in",
+        "on",
+        "for",
+        "with",
+        "as",
+        "by",
+        "at",
+        "from",
+        "into",
+        "about",
+        "what",
+        "which",
+        "who",
+        "whom",
+        "whose",
+        "why",
+        "how",
+        "when",
+        "where",
+        "do",
+        "does",
+        "did",
+        "can",
+        "could",
+        "should",
+        "would",
+        "will",
+        "may",
+        "might",
+        "must",
+        "you",
+        "your",
+        "me",
+        "my",
+        "we",
+        "our",
+        "it",
+        "its",
+        "this",
+        "that",
+        "these",
+        "those",
+        "please",
+        "explain",
+        "define",
+        "tell",
+        "describe",
+        "difference",
+        "between",
+        "vs",
+        "versus",
+    }
+)
+# Keep short domain tokens (normally dropped by length filter)
+_SHORT_KEEP = frozenset({"ci", "cd", "qa", "ui", "ux", "api", "db", "ml", "e2e"})
+# Light synonym expansion for broader L2 matching
+_SYNONYMS: dict[str, set[str]] = {
+    "bad": {"harmful", "risky", "problematic", "issue"},
+    "harmful": {"bad", "risky", "problematic"},
+    "pipeline": {"ci", "cd", "build"},
+    "pipelines": {"ci", "cd", "build"},
+    "flaky": {"flake", "nondeterministic", "intermittent"},
+    "flake": {"flaky"},
+    "test": {"testing", "tests", "qa"},
+    "tests": {"test", "testing"},
+    "testing": {"test", "tests", "qa"},
+    "bug": {"defect", "issue"},
+    "defect": {"bug", "issue"},
+    "automation": {"automated", "automate"},
+    "automated": {"automation"},
+}
+
+MatchMode = Literal["exact", "normalized", "fuzzy"]
 
 SYSTEM_PROMPT = (
     "You are a concise software testing assistant for QA engineers and SDETs. "
@@ -43,13 +139,139 @@ class ChatResponse:
         return (self.prompt_tokens or 0) + (self.completion_tokens or 0)
 
 
-def _load_golden_by_question() -> dict[str, dict[str, Any]]:
+def _load_golden_cases() -> list[dict[str, Any]]:
     ensure_import_paths()
     path = eval_root() / "golden_dataset" / "qa_pairs.json"
     if not path.exists():
-        return {}
+        return []
     data = json.loads(path.read_text(encoding="utf-8"))
-    return {c["question"].strip(): c for c in data.get("cases") or []}
+    return list(data.get("cases") or [])
+
+
+def _load_golden_by_question() -> dict[str, dict[str, Any]]:
+    return {c["question"].strip(): c for c in _load_golden_cases() if c.get("question")}
+
+
+def _normalize_q(text: str) -> str:
+    t = (text or "").lower().strip()
+    t = re.sub(r"[^\w\s]", " ", t)
+    t = re.sub(r"\s+", " ", t).strip()
+    return t
+
+
+def _stem(token: str) -> str:
+    t = token.lower()
+    if t.endswith("ies") and len(t) > 4:
+        return t[:-3] + "y"
+    if t.endswith("ing") and len(t) > 5:
+        return t[:-3]
+    if t.endswith("tion") and len(t) > 5:
+        return t[:-4]
+    if t.endswith("ments") and len(t) > 6:
+        return t[:-1]
+    if t.endswith("es") and len(t) > 4 and not t.endswith("ss"):
+        return t[:-2]
+    if t.endswith("s") and len(t) > 3 and not t.endswith("ss"):
+        return t[:-1]
+    return t
+
+
+def _tokens(text: str) -> set[str]:
+    raw = re.findall(r"[a-z0-9]+", (text or "").lower())
+    out: set[str] = set()
+    for t in raw:
+        if t in _STOPWORDS:
+            continue
+        if len(t) <= 2 and t not in _SHORT_KEEP:
+            continue
+        st = _stem(t)
+        out.add(st)
+        # expand synonyms (stemmed keys/values)
+        syns = set(_SYNONYMS.get(t, set())) | set(_SYNONYMS.get(st, set()))
+        for syn in syns:
+            out.add(_stem(syn))
+    return out
+
+
+def question_similarity(a: str, b: str) -> float:
+    """Broad similarity in [0, 1]: tokens + sequence ratio + keyphrase boost."""
+    from difflib import SequenceMatcher
+
+    na, nb = _normalize_q(a), _normalize_q(b)
+    if not na or not nb:
+        return 0.0
+    if na == nb:
+        return 1.0
+    if na in nb or nb in na:
+        base_sub = 0.78
+    else:
+        base_sub = 0.0
+
+    ta, tb = _tokens(a), _tokens(b)
+    if ta and tb:
+        inter = len(ta & tb)
+        union = len(ta | tb) or 1
+        jaccard = inter / union
+        cover_a = inter / len(ta)
+        cover_b = inter / len(tb)
+        token_score = 0.35 * jaccard + 0.50 * cover_a + 0.15 * cover_b
+    else:
+        token_score = 0.0
+
+    seq = SequenceMatcher(None, na, nb).ratio()
+    # Blend — token match drives semantics; seq helps near-paraphrases
+    score = max(base_sub, 0.55 * token_score + 0.30 * seq + 0.15 * min(token_score, seq) * 2)
+    return round(min(1.0, score), 4)
+
+
+def match_golden_case(
+    question: str,
+    *,
+    min_score: float = 0.32,
+) -> tuple[dict[str, Any] | None, float, MatchMode | None]:
+    """
+    Find best golden case for a question.
+
+    1) exact string match
+    2) normalized match (case/punct)
+    3) fuzzy token similarity (broad L2 / offline fallback)
+    """
+    q = (question or "").strip()
+    if not q:
+        return None, 0.0, None
+
+    by_q = _load_golden_by_question()
+    if q in by_q:
+        return by_q[q], 1.0, "exact"
+
+    nq = _normalize_q(q)
+    for case_q, case in by_q.items():
+        if _normalize_q(case_q) == nq:
+            return case, 0.98, "normalized"
+
+    best: dict[str, Any] | None = None
+    best_score = 0.0
+    for case in _load_golden_cases():
+        cq = case.get("question") or ""
+        score = question_similarity(q, cq)
+        # Boost if user question hits many must_include concept stems
+        concepts = case.get("must_include") or []
+        if concepts:
+            qt = _tokens(q)
+            hits = 0
+            for c in concepts:
+                ct = _tokens(str(c))
+                if ct and ct <= qt or any(t in qt for t in ct):
+                    hits += 1
+            if concepts:
+                score = min(1.0, score + 0.12 * (hits / len(concepts)))
+        if score > best_score:
+            best_score = score
+            best = case
+
+    if best is not None and best_score >= min_score:
+        return best, best_score, "fuzzy"
+    return None, best_score, None
 
 
 def _api_key() -> str:
@@ -149,7 +371,8 @@ class ChatClient:
         )
 
     def _golden_complete(self, question: str) -> ChatResponse | None:
-        case = self._golden.get(question.strip())
+        # Broad match so paraphrases work offline (same rules as L2)
+        case, score, mode = match_golden_case(question, min_score=0.32)
         if not case:
             return None
         t0 = time.perf_counter()
@@ -160,7 +383,12 @@ class ChatClient:
             latency_ms=round(latency, 2),
             model=f"golden:{case['id']}",
             backend="golden",
-            raw={"id": case["id"], "matched": True},
+            raw={
+                "id": case["id"],
+                "matched": True,
+                "match_mode": mode,
+                "match_score": score,
+            },
         )
 
     def _openai_complete(
@@ -228,5 +456,11 @@ def load_red_team_prompts(limit: int = 6) -> list[dict[str, str]]:
     return out
 
 
-def find_golden_case(question: str) -> dict[str, Any] | None:
-    return _load_golden_by_question().get((question or "").strip())
+def find_golden_case(
+    question: str,
+    *,
+    min_score: float = 0.32,
+) -> dict[str, Any] | None:
+    """Best golden case for question (exact → normalized → fuzzy)."""
+    case, _, _ = match_golden_case(question, min_score=min_score)
+    return case
