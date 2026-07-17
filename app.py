@@ -594,10 +594,20 @@ def get_theme() -> ThemeName:
 
 
 def set_theme(theme: ThemeName) -> None:
-    st.session_state.theme = theme
-    # Keep radio widget in sync when toggled from the main-canvas button
+    """Request a theme change. Applied at the start of the next run (before widgets)."""
+    st.session_state._pending_theme = theme
+
+
+def apply_pending_theme() -> None:
+    """Sync theme + radio state before any theme widgets are instantiated."""
+    if "theme" not in st.session_state:
+        st.session_state.theme = "dark"
+    pending = st.session_state.pop("_pending_theme", None)
+    if pending in ("dark", "light"):
+        st.session_state.theme = pending
+    # Always align radio label with theme before st.radio(..., key="theme_radio")
     st.session_state.theme_radio = (
-        "☀️ Soft light" if theme == "light" else "🌙 Dark"
+        "☀️ Soft light" if get_theme() == "light" else "🌙 Dark"
     )
 
 
@@ -1033,10 +1043,6 @@ def render_theme_toggle() -> ThemeName:
     """Segmented theme control; returns current theme after update."""
     current = get_theme()
     options = ["🌙 Dark", "☀️ Soft light"]
-    if "theme_radio" not in st.session_state:
-        st.session_state.theme_radio = (
-            "☀️ Soft light" if current == "light" else "🌙 Dark"
-        )
     choice = st.radio(
         "Theme",
         options,
@@ -1044,8 +1050,9 @@ def render_theme_toggle() -> ThemeName:
         label_visibility="collapsed",
         key="theme_radio",
     )
-    new_theme: ThemeName = "light" if "light" in choice.lower() else "dark"
+    new_theme: ThemeName = "light" if "light" in str(choice).lower() else "dark"
     if new_theme != current:
+        # Safe: only update the non-widget key; radio already holds new_theme
         st.session_state.theme = new_theme
         st.rerun()
     return new_theme
@@ -1060,9 +1067,8 @@ EXAMPLE_PROMPTS = [
 
 
 def main() -> None:
-    if "theme" not in st.session_state:
-        st.session_state.theme = "dark"
-
+    # Must run before any theme widgets (radio key=theme_radio)
+    apply_pending_theme()
     theme = get_theme()
     inject_css(theme)
 
