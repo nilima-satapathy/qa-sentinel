@@ -1,0 +1,42 @@
+# Native Streamlit chrome (chat input dock, widgets) — Claude-warm palette
+# Custom CSS still drives Design tokens; this keeps secondaryBg from going pure black.
+
+[theme]
+base = "light"
+primaryColor = "#c96442"
+backgroundColor = "#f5f0e8"
+secondaryBackgroundColor = "#fffcf7"
+textColor = "#2c2418"
+borderColor = "#e0d6c8"
+font = "sans-serif"
+baseRadius = "0.85rem"
+buttonRadius = "full"
+showWidgetBorder = true
+
+[theme.light]
+primaryColor = "#c96442"
+backgroundColor = "#f5f0e8"
+secondaryBackgroundColor = "#fffcf7"
+textColor = "#2c2418"
+borderColor = "#e0d6c8"
+
+[theme.dark]
+primaryColor = "#d47855"
+backgroundColor = "#1c1917"
+secondaryBackgroundColor = "#26211d"
+textColor = "#e8e0d5"
+borderColor = "#3a342e"
+
+[theme.light.sidebar]
+backgroundColor = "#efe9df"
+secondaryBackgroundColor = "#f3ede4"
+
+[theme.dark.sidebar]
+backgroundColor = "#211d19"
+secondaryBackgroundColor = "#26211d"
+
+[server]
+headless = true
+
+[browser]
+gatherUsageStats = false

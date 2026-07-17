@@ -514,14 +514,102 @@ div[data-testid="stExpander"] {
   border: 1px solid var(--c-border);
 }
 
-/* Chat input — soft rounded Claude composer */
-div[data-testid="stChatInput"] {
-  max-width: 760px;
-  margin: 0 auto;
+/* —— Bottom dock + chat composer (must match body theme) —— */
+[data-testid="stBottom"],
+[data-testid="stBottom"] > div,
+section.main > div > div > [data-testid="stBottom"] {
+  background: var(--c-bg) !important;
+  background-color: var(--c-bg) !important;
+  background-image: none !important;
+  border: none !important;
+  box-shadow: none !important;
 }
-div[data-testid="stChatInput"] textarea {
+[data-testid="stBottomBlockContainer"] {
+  background: var(--c-bg) !important;
+  background-color: var(--c-bg) !important;
+  border-top: 1px solid var(--c-border) !important;
+  padding-top: 0.65rem !important;
+  padding-bottom: 0.85rem !important;
+  max-width: 1180px !important;
+}
+/* Soft top fade so content doesn't hard-cut into the dock */
+[data-testid="stBottom"]::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -28px;
+  height: 28px;
+  pointer-events: none;
+  background: linear-gradient(to bottom, transparent, var(--c-bg));
+}
+[data-testid="stBottom"] {
+  position: relative;
+}
+
+div[data-testid="stChatInput"] {
+  max-width: 720px !important;
+  margin: 0 auto !important;
+  background: transparent !important;
+  background-color: transparent !important;
+}
+/* Outer rounded shell of the input */
+div[data-testid="stChatInput"] > div {
+  background: var(--c-surface) !important;
+  background-color: var(--c-surface) !important;
+  border: 1px solid var(--c-border) !important;
+  border-radius: 1.35rem !important;
+  box-shadow: var(--c-shadow) !important;
   color: var(--c-text) !important;
+}
+/* Nested emotion wrappers that often keep secondaryBg */
+div[data-testid="stChatInput"] div,
+div[data-testid="stChatInput"] form {
+  background-color: transparent !important;
+  color: var(--c-text) !important;
+}
+div[data-testid="stChatInput"] > div {
+  background: var(--c-surface) !important;
+  background-color: var(--c-surface) !important;
+}
+
+textarea[data-testid="stChatInputTextArea"],
+div[data-testid="stChatInput"] textarea {
+  background: transparent !important;
+  background-color: transparent !important;
+  color: var(--c-text) !important;
+  caret-color: var(--c-accent) !important;
   font-family: 'Source Sans 3', system-ui, sans-serif !important;
+  font-size: 0.98rem !important;
+}
+textarea[data-testid="stChatInputTextArea"]::placeholder,
+div[data-testid="stChatInput"] textarea::placeholder {
+  color: var(--c-muted) !important;
+  opacity: 1 !important;
+}
+
+button[data-testid="stChatInputSubmitButton"] {
+  background: var(--c-accent) !important;
+  background-color: var(--c-accent) !important;
+  color: #fff !important;
+  border: none !important;
+  border-radius: 999px !important;
+}
+button[data-testid="stChatInputSubmitButton"]:hover {
+  filter: brightness(1.06);
+}
+button[data-testid="stChatInputSubmitButton"] svg,
+button[data-testid="stChatInputSubmitButton"] path {
+  fill: #fff !important;
+  color: #fff !important;
+}
+button[data-testid="stChatInputFileUploadButton"],
+button[data-testid="stChatInputMicButton"] {
+  color: var(--c-muted-strong) !important;
+  background: transparent !important;
+}
+[data-testid="stChatInputInstructions"] {
+  color: var(--c-muted) !important;
 }
 </style>
 """
