@@ -1,5 +1,5 @@
 """
-QA Sentinel — realtime software-testing chatbot + per-answer quality gate.
+QA Sentinel — Design 1: Chat + Quality Artifact panel.
 
   python -m streamlit run app.py
 """
@@ -30,382 +30,456 @@ st.set_page_config(
     page_title="QA Sentinel",
     page_icon="🛡️",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="collapsed",
 )
 
 # ---------------------------------------------------------------------------
-# Theme / CSS
+# Design 1 — soft dark + emerald artifact
 # ---------------------------------------------------------------------------
 
 APP_CSS = """
 <style>
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
 html, body, [class*="css"] {
-  font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
-/* App canvas */
 .stApp {
-  background:
-    radial-gradient(1200px 500px at 10% -10%, rgba(56, 189, 248, 0.12), transparent 55%),
-    radial-gradient(900px 400px at 90% 0%, rgba(99, 102, 241, 0.14), transparent 50%),
-    linear-gradient(180deg, #0b1220 0%, #0f172a 40%, #111827 100%);
-  color: #e5e7eb;
+  background: #12141a;
+  color: #e8eaed;
 }
 
-/* Hide Streamlit chrome clutter */
 #MainMenu, footer, header { visibility: hidden; }
 div[data-testid="stToolbar"] { display: none; }
+
 .block-container {
-  padding-top: 1.25rem !important;
-  padding-bottom: 6rem !important;
-  max-width: 1100px;
+  padding-top: 0.85rem !important;
+  padding-bottom: 5.5rem !important;
+  padding-left: 1.25rem !important;
+  padding-right: 1.25rem !important;
+  max-width: 1400px;
 }
 
-/* Sidebar */
-section[data-testid="stSidebar"] {
-  background: linear-gradient(180deg, #0f172a 0%, #111827 100%);
-  border-right: 1px solid rgba(148, 163, 184, 0.12);
-}
-section[data-testid="stSidebar"] .block-container {
-  padding-top: 1.5rem !important;
-}
-section[data-testid="stSidebar"] h1,
-section[data-testid="stSidebar"] h2,
-section[data-testid="stSidebar"] h3 {
-  color: #f8fafc !important;
-  letter-spacing: -0.02em;
-}
-
-/* Hero */
-.qs-hero {
+/* Top bar */
+.qs-topbar {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1.25rem;
-  padding: 1.35rem 1.5rem;
-  margin-bottom: 1rem;
-  border-radius: 18px;
-  background: linear-gradient(135deg, rgba(30, 41, 59, 0.9) 0%, rgba(15, 23, 42, 0.95) 100%);
-  border: 1px solid rgba(148, 163, 184, 0.16);
-  box-shadow: 0 18px 40px rgba(2, 6, 23, 0.35);
-}
-.qs-hero-left { flex: 1; min-width: 0; }
-.qs-kicker {
-  display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #7dd3fc;
-  margin-bottom: 0.45rem;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.85rem;
+  padding: 0.35rem 0.15rem 0.85rem;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
 }
-.qs-title {
-  margin: 0;
-  font-size: 1.85rem;
+.qs-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+.qs-logo {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  background: linear-gradient(135deg, #10b981, #34d399);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  box-shadow: 0 0 20px rgba(52, 211, 153, 0.25);
+}
+.qs-brand-name {
+  font-size: 1.1rem;
   font-weight: 700;
   letter-spacing: -0.03em;
   color: #f8fafc;
-  line-height: 1.15;
 }
-.qs-subtitle {
-  margin: 0.45rem 0 0;
-  color: #94a3b8;
-  font-size: 0.98rem;
-  line-height: 1.5;
-  max-width: 52rem;
+.qs-brand-sub {
+  font-size: 0.72rem;
+  color: #6b7280;
+  font-weight: 500;
 }
-.qs-badge-row {
+.qs-top-meta {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 0.45rem;
-  margin-top: 0.9rem;
 }
-.qs-chip {
+.qs-pill {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
   padding: 0.28rem 0.65rem;
   border-radius: 999px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  border: 1px solid transparent;
-}
-.qs-chip-soft {
-  background: rgba(56, 189, 248, 0.1);
-  color: #bae6fd;
-  border-color: rgba(56, 189, 248, 0.22);
-}
-.qs-chip-ok {
-  background: rgba(34, 197, 94, 0.12);
-  color: #86efac;
-  border-color: rgba(34, 197, 94, 0.28);
-}
-.qs-chip-warn {
-  background: rgba(245, 158, 11, 0.12);
-  color: #fcd34d;
-  border-color: rgba(245, 158, 11, 0.28);
-}
-.qs-chip-off {
-  background: rgba(148, 163, 184, 0.1);
-  color: #cbd5e1;
-  border-color: rgba(148, 163, 184, 0.22);
-}
-
-/* KPI strip */
-.qs-kpi-row {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.75rem;
-  margin: 0 0 1.15rem;
-}
-@media (max-width: 900px) {
-  .qs-kpi-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-.qs-kpi {
-  padding: 0.9rem 1rem;
-  border-radius: 14px;
-  background: rgba(15, 23, 42, 0.72);
-  border: 1px solid rgba(148, 163, 184, 0.14);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
-}
-.qs-kpi-label {
   font-size: 0.72rem;
   font-weight: 600;
-  letter-spacing: 0.06em;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.04);
+  color: #9ca3af;
+}
+.qs-pill-live {
+  color: #6ee7b7;
+  border-color: rgba(52, 211, 153, 0.3);
+  background: rgba(16, 185, 129, 0.1);
+}
+.qs-pill-off {
+  color: #fcd34d;
+  border-color: rgba(251, 191, 36, 0.28);
+  background: rgba(245, 158, 11, 0.1);
+}
+
+/* Layout columns */
+.qs-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 1rem;
+  align-items: start;
+}
+@media (max-width: 960px) {
+  .qs-layout { grid-template-columns: 1fr; }
+}
+
+/* Chat column */
+.qs-chat-shell {
+  min-height: 420px;
+  border-radius: 16px;
+  background: #1a1d24;
+  border: 1px solid rgba(255,255,255,0.06);
+  padding: 1rem 1.1rem 0.85rem;
+}
+.qs-session-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #6b7280;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: #94a3b8;
-  margin-bottom: 0.35rem;
+  margin-bottom: 0.75rem;
 }
-.qs-kpi-value {
-  font-size: 1.45rem;
-  font-weight: 700;
-  color: #f8fafc;
-  letter-spacing: -0.02em;
-  font-variant-numeric: tabular-nums;
-  line-height: 1.1;
-}
-.qs-kpi-sub {
-  margin-top: 0.25rem;
-  font-size: 0.78rem;
-  color: #64748b;
-}
-.qs-kpi-accent-pass .qs-kpi-value { color: #4ade80; }
-.qs-kpi-accent-warn .qs-kpi-value { color: #fbbf24; }
-.qs-kpi-accent-fail .qs-kpi-value { color: #f87171; }
-.qs-kpi-accent-rate .qs-kpi-value { color: #38bdf8; }
 
 /* Empty state */
 .qs-empty {
   text-align: center;
-  padding: 2.5rem 1.5rem;
-  margin: 0.5rem 0 1rem;
-  border-radius: 18px;
-  border: 1px dashed rgba(148, 163, 184, 0.28);
-  background: rgba(15, 23, 42, 0.45);
+  padding: 2.75rem 1.25rem 2rem;
+}
+.qs-empty-icon {
+  width: 52px;
+  height: 52px;
+  margin: 0 auto 0.85rem;
+  border-radius: 14px;
+  background: rgba(52, 211, 153, 0.12);
+  border: 1px solid rgba(52, 211, 153, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
 }
 .qs-empty h3 {
   margin: 0 0 0.4rem;
-  color: #f1f5f9;
-  font-size: 1.2rem;
+  color: #f3f4f6;
+  font-size: 1.15rem;
+  font-weight: 600;
 }
 .qs-empty p {
-  margin: 0 auto 1rem;
-  max-width: 34rem;
-  color: #94a3b8;
-  font-size: 0.95rem;
+  margin: 0 auto;
+  max-width: 28rem;
+  color: #9ca3af;
+  font-size: 0.9rem;
   line-height: 1.55;
 }
-.qs-examples {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 0.5rem;
-}
-.qs-example {
-  padding: 0.45rem 0.8rem;
-  border-radius: 10px;
-  background: rgba(56, 189, 248, 0.08);
-  border: 1px solid rgba(56, 189, 248, 0.2);
-  color: #e0f2fe;
-  font-size: 0.82rem;
-}
 
-/* Gate card under assistant messages */
-.qs-gate {
-  margin-top: 0.65rem;
-  border-radius: 14px;
-  overflow: hidden;
-  border: 1px solid rgba(148, 163, 184, 0.16);
-  background: rgba(15, 23, 42, 0.55);
-}
-.qs-gate-head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.55rem;
-  padding: 0.7rem 0.9rem;
-  border-bottom: 1px solid rgba(148, 163, 184, 0.1);
-}
-.qs-status {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.28rem 0.7rem;
-  border-radius: 999px;
-  font-size: 0.78rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-}
-.qs-status-pass {
-  background: rgba(34, 197, 94, 0.18);
-  color: #86efac;
-  border: 1px solid rgba(34, 197, 94, 0.35);
-}
-.qs-status-warn {
-  background: rgba(245, 158, 11, 0.18);
-  color: #fcd34d;
-  border: 1px solid rgba(245, 158, 11, 0.35);
-}
-.qs-status-fail {
-  background: rgba(239, 68, 68, 0.18);
-  color: #fca5a5;
-  border: 1px solid rgba(239, 68, 68, 0.35);
-}
-.qs-meta {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  font-size: 0.78rem;
-  color: #94a3b8;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-}
-.qs-meta-dot { opacity: 0.45; }
-.qs-layers {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
-  margin-left: auto;
-}
-.qs-layer {
-  font-size: 0.7rem;
-  font-weight: 600;
-  padding: 0.18rem 0.45rem;
-  border-radius: 6px;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-}
-.qs-layer-pass { background: rgba(34, 197, 94, 0.15); color: #86efac; }
-.qs-layer-warn { background: rgba(245, 158, 11, 0.15); color: #fcd34d; }
-.qs-layer-fail { background: rgba(239, 68, 68, 0.15); color: #fca5a5; }
-.qs-layer-skip { background: rgba(148, 163, 184, 0.12); color: #94a3b8; }
-.qs-gate-body {
-  padding: 0.75rem 0.9rem 0.85rem;
-}
-.qs-reason {
-  display: flex;
-  gap: 0.5rem;
-  align-items: flex-start;
-  padding: 0.35rem 0;
-  font-size: 0.86rem;
-  color: #cbd5e1;
-  line-height: 1.45;
-}
-.qs-reason-bullet {
-  flex-shrink: 0;
-  width: 0.45rem;
-  height: 0.45rem;
-  margin-top: 0.4rem;
-  border-radius: 999px;
-  background: #38bdf8;
-}
-.qs-extra {
-  margin-top: 0.55rem;
-  padding-top: 0.55rem;
-  border-top: 1px solid rgba(148, 163, 184, 0.1);
-  font-size: 0.8rem;
-  color: #94a3b8;
-}
-
-/* Sidebar cards */
-.qs-side-card {
-  padding: 0.85rem 0.9rem;
-  margin: 0.4rem 0 0.85rem;
-  border-radius: 12px;
-  background: rgba(30, 41, 59, 0.55);
-  border: 1px solid rgba(148, 163, 184, 0.12);
-}
-.qs-side-label {
-  font-size: 0.7rem;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: #64748b;
-  margin-bottom: 0.2rem;
-}
-.qs-side-value {
-  font-size: 0.88rem;
-  color: #e2e8f0;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  word-break: break-all;
-}
-.qs-section-title {
-  font-size: 0.78rem;
-  font-weight: 700;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  color: #94a3b8;
-  margin: 1rem 0 0.45rem;
-}
-
-/* Chat avatars / bubbles */
+/* Messages */
 div[data-testid="stChatMessage"] {
-  background: rgba(15, 23, 42, 0.4) !important;
-  border: 1px solid rgba(148, 163, 184, 0.1);
-  border-radius: 16px !important;
-  padding: 0.65rem 0.85rem !important;
-  margin-bottom: 0.65rem;
+  background: transparent !important;
+  border: none !important;
+  padding: 0.35rem 0 !important;
+  margin-bottom: 0.35rem;
 }
 div[data-testid="stChatMessage"] p {
   color: #e5e7eb;
+  line-height: 1.55;
 }
 
-/* Buttons */
+/* Status chip under message */
+.qs-status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.45rem;
+  padding: 0.28rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+}
+.qs-status-pass {
+  background: rgba(16, 185, 129, 0.15);
+  color: #6ee7b7;
+  border: 1px solid rgba(52, 211, 153, 0.35);
+}
+.qs-status-warn {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fcd34d;
+  border: 1px solid rgba(251, 191, 36, 0.35);
+}
+.qs-status-fail {
+  background: rgba(239, 68, 68, 0.15);
+  color: #fca5a5;
+  border: 1px solid rgba(248, 113, 113, 0.35);
+}
+.qs-status-meta {
+  font-weight: 500;
+  opacity: 0.85;
+}
+
+/* Free tier strip under chat */
+.qs-freebar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.85rem;
+  padding: 0.55rem 0.7rem;
+  border-radius: 10px;
+  background: rgba(0,0,0,0.25);
+  border: 1px solid rgba(255,255,255,0.05);
+}
+.qs-freebar-label {
+  font-size: 0.72rem;
+  color: #9ca3af;
+  white-space: nowrap;
+  font-weight: 500;
+}
+.qs-freebar-track {
+  flex: 1;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.08);
+  overflow: hidden;
+}
+.qs-freebar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #10b981, #34d399);
+}
+.qs-freebar-nums {
+  font-size: 0.72rem;
+  color: #6b7280;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  white-space: nowrap;
+}
+
+/* Artifact panel */
+.qs-artifact {
+  border-radius: 16px;
+  background: #1a1d24;
+  border: 1px solid rgba(52, 211, 153, 0.18);
+  box-shadow: 0 0 40px rgba(16, 185, 129, 0.06);
+  overflow: hidden;
+  position: sticky;
+  top: 0.5rem;
+}
+.qs-artifact-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  background: rgba(16, 185, 129, 0.06);
+}
+.qs-artifact-title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #f3f4f6;
+  letter-spacing: -0.01em;
+}
+.qs-artifact-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 0.18rem 0.5rem;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.qs-artifact-body {
+  padding: 1.1rem 1rem 1.15rem;
+}
+.qs-ring-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 1.1rem;
+}
+.qs-ring {
+  width: 118px;
+  height: 118px;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 5px solid #374151;
+  background: radial-gradient(circle at 40% 35%, rgba(255,255,255,0.04), transparent 55%);
+}
+.qs-ring-pass {
+  border-color: #10b981;
+  box-shadow: 0 0 28px rgba(16, 185, 129, 0.25);
+}
+.qs-ring-warn {
+  border-color: #f59e0b;
+  box-shadow: 0 0 28px rgba(245, 158, 11, 0.2);
+}
+.qs-ring-fail {
+  border-color: #ef4444;
+  box-shadow: 0 0 28px rgba(239, 68, 68, 0.2);
+}
+.qs-ring-idle {
+  border-color: #374151;
+}
+.qs-ring-status {
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #f9fafb;
+}
+.qs-ring-sub {
+  font-size: 0.7rem;
+  color: #9ca3af;
+  margin-top: 0.15rem;
+}
+.qs-layer-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin-bottom: 1rem;
+}
+.qs-layer-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 0.6rem;
+  border-radius: 10px;
+  background: rgba(0,0,0,0.22);
+  border: 1px solid rgba(255,255,255,0.05);
+  font-size: 0.78rem;
+}
+.qs-layer-name {
+  font-weight: 600;
+  color: #d1d5db;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.72rem;
+}
+.qs-layer-val {
+  font-weight: 600;
+  font-size: 0.72rem;
+}
+.qs-ok { color: #6ee7b7; }
+.qs-wn { color: #fcd34d; }
+.qs-fl { color: #fca5a5; }
+.qs-sk { color: #6b7280; }
+.qs-section {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #6b7280;
+  margin: 0.35rem 0 0.45rem;
+}
+.qs-reason {
+  display: flex;
+  gap: 0.45rem;
+  align-items: flex-start;
+  padding: 0.28rem 0;
+  font-size: 0.8rem;
+  color: #c4c9d2;
+  line-height: 1.4;
+}
+.qs-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #34d399;
+  margin-top: 0.4rem;
+  flex-shrink: 0;
+}
+.qs-idle-hint {
+  text-align: center;
+  padding: 0.5rem 0.25rem 0.25rem;
+  color: #6b7280;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+.qs-meta-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.45rem;
+  margin-top: 0.85rem;
+}
+.qs-meta-card {
+  padding: 0.5rem 0.55rem;
+  border-radius: 10px;
+  background: rgba(0,0,0,0.22);
+  border: 1px solid rgba(255,255,255,0.05);
+}
+.qs-meta-card .k {
+  font-size: 0.65rem;
+  color: #6b7280;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.qs-meta-card .v {
+  font-size: 0.82rem;
+  color: #e5e7eb;
+  font-weight: 600;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  margin-top: 0.15rem;
+}
+
+/* Sidebar controls (collapsed by default; settings) */
+section[data-testid="stSidebar"] {
+  background: #16181f;
+  border-right: 1px solid rgba(255,255,255,0.06);
+}
+section[data-testid="stSidebar"] .block-container {
+  padding-top: 1.25rem !important;
+}
 .stButton > button {
   border-radius: 10px !important;
-  border: 1px solid rgba(148, 163, 184, 0.18) !important;
-  background: rgba(30, 41, 59, 0.8) !important;
-  color: #e2e8f0 !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  background: rgba(255,255,255,0.04) !important;
+  color: #e5e7eb !important;
   font-weight: 600 !important;
-  transition: all 0.15s ease;
 }
 .stButton > button:hover {
-  border-color: rgba(56, 189, 248, 0.45) !important;
-  background: rgba(14, 116, 144, 0.25) !important;
-  color: #f0f9ff !important;
+  border-color: rgba(52, 211, 153, 0.4) !important;
+  background: rgba(16, 185, 129, 0.12) !important;
+  color: #ecfdf5 !important;
 }
 .stButton > button[kind="primary"] {
-  background: linear-gradient(135deg, #0284c7, #6366f1) !important;
+  background: linear-gradient(135deg, #059669, #10b981) !important;
   border: none !important;
   color: white !important;
 }
-
-/* Progress */
 div[data-testid="stProgress"] > div {
-  background: rgba(30, 41, 59, 0.9) !important;
+  background: rgba(255,255,255,0.08) !important;
   border-radius: 999px !important;
 }
 div[data-testid="stProgress"] > div > div {
-  background: linear-gradient(90deg, #22d3ee, #818cf8) !important;
+  background: linear-gradient(90deg, #10b981, #34d399) !important;
 }
-
-/* Expander */
 div[data-testid="stExpander"] {
-  background: rgba(15, 23, 42, 0.35);
-  border-radius: 12px;
-  border: 1px solid rgba(148, 163, 184, 0.12);
+  background: rgba(0,0,0,0.2);
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.06);
+}
+/* Suggestion chips row spacing */
+.qs-chips-label {
+  font-size: 0.7rem;
+  color: #6b7280;
+  font-weight: 600;
+  margin: 0.35rem 0 0.25rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 </style>
 """
@@ -469,6 +543,8 @@ def process_turn(
                         "meta": {"backend": "openai", "model": model_a},
                     }
                 )
+                st.session_state.last_gate = None
+                st.session_state.last_meta = {}
                 return
             with st.spinner("Gating A/B candidates…"):
                 gate_a = evaluate_answer(
@@ -522,6 +598,8 @@ def process_turn(
                         "meta": {"backend": resp.backend, "model": resp.model},
                     }
                 )
+                st.session_state.last_gate = None
+                st.session_state.last_meta = {}
                 return
             with st.spinner("Running quality gate…"):
                 gate = evaluate_answer(
@@ -572,23 +650,27 @@ def process_turn(
         golden_case_id=gate.golden_case_id,
     )
 
+    meta = {
+        "backend": resp.backend,
+        "model": resp.model,
+        "latency_ms": resp.latency_ms,
+        "tokens": resp.total_tokens,
+        "error": resp.error,
+        "ab": ab_meta,
+        "repair": repair_meta,
+    }
     st.session_state.messages.append({"role": "user", "content": question})
     st.session_state.messages.append(
         {
             "role": "assistant",
             "content": answer,
             "gate": gate.to_dict(),
-            "meta": {
-                "backend": resp.backend,
-                "model": resp.model,
-                "latency_ms": resp.latency_ms,
-                "tokens": resp.total_tokens,
-                "error": resp.error,
-                "ab": ab_meta,
-                "repair": repair_meta,
-            },
+            "meta": meta,
         }
     )
+    # Latest artifact panel state
+    st.session_state.last_gate = gate.to_dict()
+    st.session_state.last_meta = meta
 
 
 def session_pass_rate(stats: dict) -> float:
@@ -599,163 +681,136 @@ def session_pass_rate(stats: dict) -> float:
 
 
 # ---------------------------------------------------------------------------
-# UI fragments
+# UI pieces
 # ---------------------------------------------------------------------------
 
 
-def render_hero(client: ChatClient, pass_rate: float, stats: dict) -> None:
-    mode_chip = (
-        '<span class="qs-chip qs-chip-ok">Live free-tier</span>'
-        if client.has_api_key
-        else '<span class="qs-chip qs-chip-warn">Offline golden mode</span>'
-    )
-    rate_chip = (
-        f'<span class="qs-chip qs-chip-soft">Session {pass_rate:.0f}% PASS</span>'
-        if stats.get("total")
-        else '<span class="qs-chip qs-chip-off">No gated turns yet</span>'
-    )
-    st.markdown(
-        f"""
-<div class="qs-hero">
-  <div class="qs-hero-left">
-    <div class="qs-kicker">🛡️ Portfolio · Project 5 · AI QA</div>
-    <h1 class="qs-title">QA Sentinel</h1>
-    <p class="qs-subtitle">
-      Realtime software-testing assistant. Every AI answer is scored by a layered quality gate —
-      offline policy, golden metrics, and optional AI-as-judge — with free-tier usage tracked live.
-    </p>
-    <div class="qs-badge-row">
-      {mode_chip}
-      {rate_chip}
-      <span class="qs-chip qs-chip-soft">L1 · L2 · L3</span>
-      <span class="qs-chip qs-chip-soft">Repair · A/B</span>
-    </div>
-  </div>
-</div>
-""",
-        unsafe_allow_html=True,
-    )
+def _layer_status(gate: dict, key: str) -> tuple[str, str]:
+    """Return (label, css_class) for a gate layer."""
+    layers = gate.get("layers") or {}
+    scores = gate.get("scores") or {}
+    layer = layers.get(key) or {}
+    sc = scores.get(key) or {}
+    st_val = (layer.get("status") or "").upper()
+
+    if key == "L3" and (sc.get("skipped") or sc.get("applicable") is False):
+        return "off", "qs-sk"
+    if key == "L2" and sc.get("applicable") is False:
+        return "n/a", "qs-sk"
+    if st_val == "PASS":
+        return "PASS", "qs-ok"
+    if st_val == "WARN":
+        return "WARN", "qs-wn"
+    if st_val == "FAIL":
+        return "FAIL", "qs-fl"
+    return "—", "qs-sk"
 
 
-def render_kpi_strip(stats: dict, pass_rate: float, meter: dict) -> None:
-    tok_left = meter.get("tokens_remaining", 0)
-    tok_lim = meter.get("tokens_limit", 1) or 1
-    tok_pct = 100.0 * tok_left / tok_lim
-    st.markdown(
-        f"""
-<div class="qs-kpi-row">
-  <div class="qs-kpi qs-kpi-accent-rate">
-    <div class="qs-kpi-label">Pass rate</div>
-    <div class="qs-kpi-value">{pass_rate:.0f}%</div>
-    <div class="qs-kpi-sub">{stats.get('total', 0)} gated turns</div>
-  </div>
-  <div class="qs-kpi qs-kpi-accent-pass">
-    <div class="qs-kpi-label">PASS</div>
-    <div class="qs-kpi-value">{stats.get('pass', 0)}</div>
-    <div class="qs-kpi-sub">Gate green</div>
-  </div>
-  <div class="qs-kpi qs-kpi-accent-warn">
-    <div class="qs-kpi-label">WARN · FAIL</div>
-    <div class="qs-kpi-value">{stats.get('warn', 0)} · {stats.get('fail', 0)}</div>
-    <div class="qs-kpi-sub">Borderline / blocked</div>
-  </div>
-  <div class="qs-kpi">
-    <div class="qs-kpi-label">Free tokens left</div>
-    <div class="qs-kpi-value" style="font-size:1.15rem">{tok_left:,}</div>
-    <div class="qs-kpi-sub">{tok_pct:.0f}% of daily budget</div>
-  </div>
-</div>
-""",
-        unsafe_allow_html=True,
-    )
-
-
-def render_empty_state() -> None:
-    st.markdown(
-        """
-<div class="qs-empty">
-  <h3>Start a gated conversation</h3>
-  <p>
-    Ask a software-testing question below, or try a golden example offline.
-    Each answer gets a PASS / WARN / FAIL card with reasons.
-  </p>
-  <div class="qs-examples">
-    <span class="qs-example">What is a flaky test, and why is it harmful in CI?</span>
-    <span class="qs-example">Difference between smoke and regression testing?</span>
-    <span class="qs-example">How do you design API test cases?</span>
-  </div>
-</div>
-""",
-        unsafe_allow_html=True,
-    )
-
-
-def _layer_class(status: str | None, skipped: bool = False) -> str:
-    if skipped or not status:
-        return "qs-layer-skip"
-    s = (status or "").upper()
-    if s == "PASS":
-        return "qs-layer-pass"
-    if s == "WARN":
-        return "qs-layer-warn"
-    if s == "FAIL":
-        return "qs-layer-fail"
-    return "qs-layer-skip"
-
-
-def render_gate_card(gate: dict, meta: dict) -> None:
+def render_status_chip(gate: dict, meta: dict) -> None:
     status = (gate.get("status") or "PASS").upper()
-    status_cls = {
+    cls = {
         "PASS": "qs-status-pass",
         "WARN": "qs-status-warn",
         "FAIL": "qs-status-fail",
     }.get(status, "qs-status-warn")
-    status_icon = {"PASS": "✓", "WARN": "!", "FAIL": "✕"}.get(status, "·")
-
-    layers = gate.get("layers") or {}
-    scores = gate.get("scores") or {}
-    # Prefer layers if present; fall back to score applicability
-    layer_bits = []
-    for key in ("L1", "L2", "L3"):
-        layer = layers.get(key) or {}
-        sc = scores.get(key) or {}
-        st_val = layer.get("status")
-        skipped = bool(sc.get("skipped")) or sc.get("applicable") is False
-        if key == "L2" and sc.get("applicable") is False:
-            label = f"{key}: —"
-            cls = "qs-layer-skip"
-        elif key == "L3" and (skipped or sc.get("applicable") is False):
-            label = f"{key}: off"
-            cls = "qs-layer-skip"
-        else:
-            label = f"{key}: {st_val or '—'}"
-            cls = _layer_class(st_val, skipped=False)
-        layer_bits.append(f'<span class="qs-layer {cls}">{esc(label)}</span>')
-
+    icon = {"PASS": "✓", "WARN": "!", "FAIL": "✕"}.get(status, "·")
     latency = meta.get("latency_ms")
-    latency_s = f"{float(latency):.0f} ms" if latency is not None else "—"
-    tokens = meta.get("tokens")
-    tokens_s = str(tokens) if tokens is not None else "—"
+    lat = f"{float(latency):.0f} ms" if latency is not None else "—"
     backend = meta.get("backend") or "—"
-    model = meta.get("model") or "—"
+    st.markdown(
+        f'<div class="qs-status-chip {cls}">'
+        f"{icon} {esc(status)}"
+        f'<span class="qs-status-meta">· Quality Gate · {esc(lat)} · {esc(backend)}</span>'
+        f"</div>",
+        unsafe_allow_html=True,
+    )
+
+
+def render_artifact_panel(gate: dict | None, meta: dict | None) -> None:
+    if not gate:
+        st.markdown(
+            """
+<div class="qs-artifact">
+  <div class="qs-artifact-head">
+    <span class="qs-artifact-title">Quality Gate</span>
+    <span class="qs-artifact-badge qs-sk" style="background:rgba(255,255,255,0.06);color:#9ca3af">Idle</span>
+  </div>
+  <div class="qs-artifact-body">
+    <div class="qs-ring-wrap">
+      <div class="qs-ring qs-ring-idle">
+        <div class="qs-ring-status" style="font-size:0.95rem;color:#6b7280">—</div>
+        <div class="qs-ring-sub">awaiting turn</div>
+      </div>
+    </div>
+    <div class="qs-idle-hint">
+      Ask a testing question.<br/>
+      Every answer is scored here as an <b>artifact</b> — L1 · L2 · L3.
+    </div>
+    <div class="qs-section">Layers</div>
+    <div class="qs-layer-list">
+      <div class="qs-layer-row"><span class="qs-layer-name">L1 Offline</span><span class="qs-layer-val qs-sk">—</span></div>
+      <div class="qs-layer-row"><span class="qs-layer-name">L2 Golden</span><span class="qs-layer-val qs-sk">—</span></div>
+      <div class="qs-layer-row"><span class="qs-layer-name">L3 AI Judge</span><span class="qs-layer-val qs-sk">off</span></div>
+    </div>
+  </div>
+</div>
+""",
+            unsafe_allow_html=True,
+        )
+        return
+
+    status = (gate.get("status") or "PASS").upper()
+    ring_cls = {
+        "PASS": "qs-ring-pass",
+        "WARN": "qs-ring-warn",
+        "FAIL": "qs-ring-fail",
+    }.get(status, "qs-ring-idle")
+    badge_bg = {
+        "PASS": "background:rgba(16,185,129,0.2);color:#6ee7b7",
+        "WARN": "background:rgba(245,158,11,0.2);color:#fcd34d",
+        "FAIL": "background:rgba(239,68,68,0.2);color:#fca5a5",
+    }.get(status, "background:rgba(255,255,255,0.06);color:#9ca3af")
+
+    layers_html = ""
+    layer_labels = {
+        "L1": "L1 Offline policy",
+        "L2": "L2 Golden match",
+        "L3": "L3 AI judge",
+    }
+    for key in ("L1", "L2", "L3"):
+        val, cls = _layer_status(gate, key)
+        layers_html += (
+            f'<div class="qs-layer-row">'
+            f'<span class="qs-layer-name">{esc(layer_labels[key])}</span>'
+            f'<span class="qs-layer-val {cls}">{esc(val)}</span>'
+            f"</div>"
+        )
 
     reasons_html = ""
-    for r in gate.get("reasons") or []:
+    for r in (gate.get("reasons") or [])[:6]:
         reasons_html += (
-            f'<div class="qs-reason"><span class="qs-reason-bullet"></span>'
+            f'<div class="qs-reason"><span class="qs-dot"></span>'
             f"<span>{esc(r)}</span></div>"
         )
     if not reasons_html:
         reasons_html = (
-            '<div class="qs-reason"><span class="qs-reason-bullet"></span>'
+            '<div class="qs-reason"><span class="qs-dot"></span>'
             "<span>No reasons recorded</span></div>"
         )
+
+    meta = meta or {}
+    latency = meta.get("latency_ms")
+    lat_s = f"{float(latency):.0f} ms" if latency is not None else "—"
+    tokens = meta.get("tokens")
+    tok_s = str(tokens) if tokens is not None else "—"
+    model = meta.get("model") or "—"
+    backend = meta.get("backend") or "—"
 
     extras = []
     ab = meta.get("ab") or {}
     if ab.get("enabled"):
         extras.append(
-            f"A/B winner <b>{esc(ab.get('winner'))}</b> — "
+            f"A/B winner {esc(ab.get('winner'))}: "
             f"A {esc(ab.get('status_a'))} vs B {esc(ab.get('status_b'))}"
         )
     repair = meta.get("repair") or {}
@@ -768,22 +823,34 @@ def render_gate_card(gate: dict, meta: dict) -> None:
     extras_html = ""
     if extras:
         extras_html = (
-            '<div class="qs-extra">' + "<br/>".join(extras) + "</div>"
+            '<div class="qs-section">Extras</div>'
+            + "".join(f'<div class="qs-reason"><span class="qs-dot"></span><span>{x}</span></div>' for x in extras)
         )
 
     st.markdown(
         f"""
-<div class="qs-gate">
-  <div class="qs-gate-head">
-    <span class="qs-status {status_cls}">{status_icon} {esc(status)}</span>
-    <span class="qs-meta">{esc(backend)} <span class="qs-meta-dot">·</span>
-      {esc(latency_s)} <span class="qs-meta-dot">·</span> {esc(tokens_s)} tok
-      <span class="qs-meta-dot">·</span> {esc(model)}</span>
-    <div class="qs-layers">{''.join(layer_bits)}</div>
+<div class="qs-artifact">
+  <div class="qs-artifact-head">
+    <span class="qs-artifact-title">Quality Gate</span>
+    <span class="qs-artifact-badge" style="{badge_bg}">{esc(status)}</span>
   </div>
-  <div class="qs-gate-body">
+  <div class="qs-artifact-body">
+    <div class="qs-ring-wrap">
+      <div class="qs-ring {ring_cls}">
+        <div class="qs-ring-status">{esc(status)}</div>
+        <div class="qs-ring-sub">{esc(backend)}</div>
+      </div>
+    </div>
+    <div class="qs-section">Layers</div>
+    <div class="qs-layer-list">{layers_html}</div>
+    <div class="qs-section">Key reasons</div>
     {reasons_html}
     {extras_html}
+    <div class="qs-meta-grid">
+      <div class="qs-meta-card"><div class="k">Latency</div><div class="v">{esc(lat_s)}</div></div>
+      <div class="qs-meta-card"><div class="k">Tokens</div><div class="v">{esc(tok_s)}</div></div>
+      <div class="qs-meta-card" style="grid-column:1/-1"><div class="k">Model</div><div class="v">{esc(model)}</div></div>
+    </div>
   </div>
 </div>
 """,
@@ -791,97 +858,63 @@ def render_gate_card(gate: dict, meta: dict) -> None:
     )
 
 
-def render_sidebar(
-    client: ChatClient,
-    meter: dict,
-    stats: dict,
-    pass_rate: float,
-) -> tuple[bool, bool, bool]:
-    st.markdown("### Controls")
-    st.markdown('<div class="qs-section-title">Runtime</div>', unsafe_allow_html=True)
+def render_topbar(client: ChatClient, meter: dict, pass_rate: float, stats: dict) -> None:
+    mode = (
+        '<span class="qs-pill qs-pill-live">● Live free-tier</span>'
+        if client.has_api_key
+        else '<span class="qs-pill qs-pill-off">● Offline golden</span>'
+    )
+    rate = (
+        f'<span class="qs-pill">Session {pass_rate:.0f}% PASS</span>'
+        if stats.get("total")
+        else '<span class="qs-pill">No gated turns yet</span>'
+    )
+    tokens = f'<span class="qs-pill">{meter["tokens_remaining"]:,} tokens left</span>'
     st.markdown(
         f"""
-<div class="qs-side-card">
-  <div class="qs-side-label">Model A</div>
-  <div class="qs-side-value">{esc(client.model)}</div>
-  <div class="qs-side-label" style="margin-top:0.55rem">Model B</div>
-  <div class="qs-side-value">{esc(client.secondary_model())}</div>
-  <div class="qs-side-label" style="margin-top:0.55rem">API key</div>
-  <div class="qs-side-value">{'configured ✓' if client.has_api_key else 'missing · golden offline'}</div>
+<div class="qs-topbar">
+  <div class="qs-brand">
+    <div class="qs-logo">🛡️</div>
+    <div>
+      <div class="qs-brand-name">QA Sentinel</div>
+      <div class="qs-brand-sub">Chat + quality gate artifact</div>
+    </div>
+  </div>
+  <div class="qs-top-meta">
+    {mode}
+    {rate}
+    {tokens}
+    <span class="qs-pill">{esc(client.model)}</span>
+  </div>
 </div>
 """,
         unsafe_allow_html=True,
     )
 
-    st.markdown('<div class="qs-section-title">Gate options</div>', unsafe_allow_html=True)
-    use_judge = st.toggle(
-        "AI-as-judge (L3)",
-        value=False,
-        help="Second free-tier call — AI inside the quality gate",
-    )
-    enable_repair = st.toggle(
-        "Repair loop",
-        value=False,
-        help="On WARN/FAIL, one auto-rewrite + re-gate",
-    )
-    enable_ab = st.toggle(
-        "A/B dual models",
-        value=False,
-        help="Run two free models, gate both, show the winner",
-        disabled=not client.has_api_key,
-    )
-    if not client.has_api_key:
-        st.caption("Add a free-tier key for live chat, judge, repair, and A/B.")
 
-    st.markdown('<div class="qs-section-title">Free cloud quota</div>', unsafe_allow_html=True)
-    frac = min(1.0, float(meter.get("frac_tokens_left") or 0))
-    st.progress(
-        frac,
-        text=f"{meter['tokens_remaining']:,} / {meter['tokens_limit']:,} tokens left",
-    )
-    st.caption(
-        f"Requests today: {meter['requests_used']:,} / {meter['requests_limit']:,}"
-    )
-    if meter["frac_tokens_left"] < 0.1:
-        st.warning("Budget low — prefer golden questions or turn off judge / repair / A/B.")
-    if meter["tokens_remaining"] <= 0:
-        st.error("Daily free token budget exhausted for this app.")
-
-    st.markdown('<div class="qs-section-title">Session</div>', unsafe_allow_html=True)
-    c1, c2 = st.columns(2)
-    c1.metric("Pass rate", f"{pass_rate:.0f}%")
-    c2.metric("Turns", str(stats.get("total", 0)))
-    st.caption(
-        f"🟢 {stats.get('pass', 0)}  ·  🟡 {stats.get('warn', 0)}  ·  🔴 {stats.get('fail', 0)}"
+def render_freebar(meter: dict) -> None:
+    used = meter["tokens_used"]
+    limit = meter["tokens_limit"] or 1
+    frac = min(1.0, used / limit) if limit else 0
+    pct = int(round(frac * 100))
+    st.markdown(
+        f"""
+<div class="qs-freebar">
+  <span class="qs-freebar-label">Free tier</span>
+  <div class="qs-freebar-track"><div class="qs-freebar-fill" style="width:{pct}%"></div></div>
+  <span class="qs-freebar-nums">{used:,} / {limit:,} · {meter['tokens_remaining']:,} left</span>
+</div>
+""",
+        unsafe_allow_html=True,
     )
 
-    st.markdown('<div class="qs-section-title">Red-team playground</div>', unsafe_allow_html=True)
-    st.caption("Inject adversarial prompts to demo safety gating.")
-    attacks = load_red_team_prompts(limit=5)
-    for a in attacks:
-        label = a["id"].replace("_", " ").replace("-", " ")
-        if st.button(label, key=f"rt_{a['id']}", use_container_width=True):
-            process_turn(
-                a["question"],
-                use_judge,
-                enable_repair=enable_repair,
-                enable_ab=enable_ab,
-            )
-            st.rerun()
 
-    st.markdown('<div class="qs-section-title">Actions</div>', unsafe_allow_html=True)
-    if st.button("⬇ Export turns CSV", use_container_width=True):
-        path = get_store().export_csv()
-        st.success(f"Wrote {path.name}")
-    if st.button("Clear chat", use_container_width=True):
-        st.session_state.messages = []
-        st.rerun()
-
-    st.markdown("---")
-    st.caption("Offline golden works without an API key.")
-    st.caption("`python scripts/run_batch_gate.py`")
-
-    return use_judge, enable_repair, enable_ab
+EXAMPLE_PROMPTS = [
+    "What is a flaky test, and why is it harmful in CI?",
+    "What is the difference between smoke and regression testing?",
+    "How should I design API test cases for a REST service?",
+    "What is shift-left testing?",
+]
 
 
 def main() -> None:
@@ -895,6 +928,10 @@ def main() -> None:
 
     if "messages" not in st.session_state:
         st.session_state.messages = []
+    if "last_gate" not in st.session_state:
+        st.session_state.last_gate = None
+    if "last_meta" not in st.session_state:
+        st.session_state.last_meta = {}
 
     store = get_store()
     client = get_client()
@@ -903,26 +940,85 @@ def main() -> None:
     stats = store.session_stats()
     pass_rate = session_pass_rate(stats)
 
+    # --- Settings (sidebar) ---
     with st.sidebar:
-        use_judge, enable_repair, enable_ab = render_sidebar(
-            client, meter, stats, pass_rate
+        st.markdown("### Settings")
+        st.caption("Gate options & red-team (Design 1 controls)")
+        use_judge = st.toggle(
+            "AI-as-judge (L3)",
+            value=False,
+            help="Second free-tier call — AI inside the quality gate",
         )
+        enable_repair = st.toggle("Repair loop", value=False)
+        enable_ab = st.toggle(
+            "A/B dual models",
+            value=False,
+            disabled=not client.has_api_key,
+        )
+        st.divider()
+        st.markdown("**Red-team playground**")
+        attacks = load_red_team_prompts(limit=5)
+        for a in attacks:
+            label = a["id"].replace("_", " ").replace("-", " ")
+            if st.button(label, key=f"rt_{a['id']}", use_container_width=True):
+                process_turn(
+                    a["question"],
+                    use_judge,
+                    enable_repair=enable_repair,
+                    enable_ab=enable_ab,
+                )
+                st.rerun()
+        st.divider()
+        if st.button("Export turns CSV", use_container_width=True):
+            path = store.export_csv()
+            st.success(f"Wrote {path.name}")
+        if st.button("Clear chat", use_container_width=True):
+            st.session_state.messages = []
+            st.session_state.last_gate = None
+            st.session_state.last_meta = {}
+            st.rerun()
+        st.caption(f"Model B: `{client.secondary_model()}`")
+        st.caption("Open sidebar (›) for controls")
 
-    render_hero(client, pass_rate, stats)
-    render_kpi_strip(stats, pass_rate, meter)
+    render_topbar(client, meter, pass_rate, stats)
 
-    if not st.session_state.messages:
-        render_empty_state()
-        # Quick-start buttons for examples
-        ex_cols = st.columns(3)
-        examples = [
-            "What is a flaky test, and why is it harmful in CI?",
-            "What is the difference between smoke and regression testing?",
-            "How should I design API test cases for a REST service?",
-        ]
-        for col, ex in zip(ex_cols, examples):
-            short = ex if len(ex) < 42 else ex[:39] + "…"
-            if col.button(short, key=f"ex_{hash(ex)}", use_container_width=True):
+    # --- Main: chat | artifact ---
+    chat_col, art_col = st.columns([1.55, 1], gap="medium")
+
+    with chat_col:
+        st.markdown('<div class="qs-session-label">Conversation</div>', unsafe_allow_html=True)
+
+        if not st.session_state.messages:
+            st.markdown(
+                """
+<div class="qs-chat-shell">
+  <div class="qs-empty">
+    <div class="qs-empty-icon">🛡️</div>
+    <h3>Start a gated conversation</h3>
+    <p>
+      Ask a software-testing question. The answer appears here;
+      the <b>Quality Gate</b> artifact on the right scores every turn.
+    </p>
+  </div>
+</div>
+""",
+                unsafe_allow_html=True,
+            )
+        else:
+            for msg in st.session_state.messages:
+                avatar = "🧑‍💻" if msg["role"] == "user" else "🛡️"
+                with st.chat_message(msg["role"], avatar=avatar):
+                    st.markdown(msg["content"])
+                    if msg["role"] == "assistant" and msg.get("gate"):
+                        render_status_chip(msg["gate"], msg.get("meta") or {})
+
+        render_freebar(meter)
+
+        st.markdown('<div class="qs-chips-label">Try</div>', unsafe_allow_html=True)
+        chip_cols = st.columns(4)
+        for i, ex in enumerate(EXAMPLE_PROMPTS):
+            short = ex if len(ex) < 28 else ex[:25] + "…"
+            if chip_cols[i].button(short, key=f"chip_{i}", use_container_width=True):
                 process_turn(
                     ex,
                     use_judge,
@@ -931,19 +1027,14 @@ def main() -> None:
                 )
                 st.rerun()
 
-    for msg in st.session_state.messages:
-        avatar = "🧑‍💻" if msg["role"] == "user" else "🛡️"
-        with st.chat_message(msg["role"], avatar=avatar):
-            st.markdown(msg["content"])
-            if msg["role"] == "assistant" and msg.get("gate"):
-                render_gate_card(msg["gate"], msg.get("meta") or {})
-                with st.expander("Full gate scores (JSON)"):
-                    st.json(msg["gate"].get("scores") or {})
-                    repair = (msg.get("meta") or {}).get("repair") or {}
-                    if repair.get("notes"):
-                        st.markdown("**Repair notes**")
-                        for n in repair["notes"]:
-                            st.write(f"- {n}")
+    with art_col:
+        render_artifact_panel(
+            st.session_state.last_gate,
+            st.session_state.last_meta,
+        )
+        if st.session_state.last_gate:
+            with st.expander("Full scores (JSON)"):
+                st.json(st.session_state.last_gate.get("scores") or {})
 
     prompt = st.chat_input("Ask a software testing question…")
     if prompt:
