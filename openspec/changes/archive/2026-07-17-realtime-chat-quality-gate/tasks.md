@@ -63,7 +63,7 @@
 - [x] 9.2 Integration test: golden-matched question offline path
 - [x] 9.3 README: architecture, free-tier setup, interview script
 - [x] 9.4 Career plan SPEC under `project-05-qa-sentinel` (or rename)
-- [ ] 9.5 Optional: short LinkedIn demo video (30–45s)
+- [ ] 9.5 Optional: short LinkedIn demo video (30–45s) — after GitHub public URL
 - [x] 9.6 `openspec validate realtime-chat-quality-gate`
 - [x] 9.7 After implementation: `openspec archive realtime-chat-quality-gate` (merge deltas into `openspec/specs/`)
 

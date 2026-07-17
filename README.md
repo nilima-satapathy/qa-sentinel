@@ -2,6 +2,8 @@
 
 **Portfolio Project 5** — Realtime software-testing AI chatbot with a **per-answer quality gate**.
 
+Claude-style chat UI · Quality Gate **artifact** panel · Free-tier cloud (Groq) · Offline golden path  
+
 Planned with [OpenSpec](https://openspec.dev/) · Built on [llm-eval-dashboard](https://github.com/nilima-satapathy/llm-eval-dashboard) (Project 4).
 
 ---
@@ -18,8 +20,8 @@ Quality gate scores the answer
   L1 offline policy · L2 golden match · L3 optional AI judge
    (optional repair: one rewrite + re-gate on WARN/FAIL)
         ↓
-UI shows answer + 🟢 PASS / 🟡 WARN / 🔴 FAIL + reasons
-        + free-credit meter + session quality score banner
+Chat + right-side Quality Gate artifact
+  PASS / WARN / FAIL · L1–L3 layers · reasons · free-tier meter
 ```
 
 **Showcase:** AI is used **as the product** (chat) **and inside the gate** (optional LLM-as-judge).
@@ -28,8 +30,11 @@ UI shows answer + 🟢 PASS / 🟡 WARN / 🔴 FAIL + reasons
 
 ## Quick start
 
+### Windows (PowerShell)
+
 ```powershell
-cd C:\Users\admin\Code\qa-sentinel
+git clone https://github.com/nilima-satapathy/qa-sentinel.git
+cd qa-sentinel
 powershell -File scripts/setup_harness.ps1
 
 python -m venv .venv
@@ -42,29 +47,45 @@ pytest tests/ -q
 python -m streamlit run app.py
 ```
 
+### macOS / Linux
+
+```bash
+git clone https://github.com/nilima-satapathy/qa-sentinel.git
+cd qa-sentinel
+bash scripts/setup_harness.sh
+
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements-dev.txt
+cp .env.example .env
+
+pytest tests/ -q
+python -m streamlit run app.py
+```
+
 Open **http://localhost:8501**
 
 ### Without API key
-Use the golden example question:
+
+Use a golden example:
 
 > What is a flaky test, and why is it harmful in CI?
 
 ### With free Groq credits
+
 ```env
 OPENAI_BASE_URL=https://api.groq.com/openai/v1
 OPENAI_API_KEY=gsk_...
 OPENAI_MODEL=llama-3.1-8b-instant
+OPENAI_MODEL_B=llama-3.3-70b-versatile
 ```
 
-Toggle **AI-as-judge (L3)** in the sidebar for a second free-tier call.
-
-Stretch toggles (use carefully on free tier):
-- **Repair loop** — one rewrite + re-gate when WARN/FAIL
-- **A/B dual models** — Model A vs `OPENAI_MODEL_B`, gated winner wins
+**Sidebar:** AI-as-judge (L3), Repair loop, A/B dual models, red-team prompts.  
+**Theme:** Light (Claude warm cream) or Dark (warm evening).
 
 ### Batch CI smoke (offline)
 
-```powershell
+```bash
 python scripts/run_batch_gate.py
 python scripts/run_batch_gate.py --limit 5 --ids qa-001,qa-002
 ```
@@ -84,6 +105,7 @@ Exit code `1` if any case **FAIL**s.
 | **Repair** | Optional one-shot rewrite on WARN/FAIL |
 | **A/B** | Optional dual free models + gated winner |
 | **Store** | SQLite turns + daily free-tier usage |
+| **UI** | Claude-style chat + Quality Gate artifact panel |
 
 OpenSpec (archived): `openspec/changes/archive/2026-07-17-realtime-chat-quality-gate/`  
 Main specs: `openspec/specs/`
@@ -92,17 +114,17 @@ Main specs: `openspec/specs/`
 
 ## Demo script (2 minutes)
 
-1. Golden question → **PASS** badge + session quality score  
+1. Golden flaky-test question → **PASS** in chat + artifact panel  
 2. Sidebar red-team button → refuse or **FAIL** if unsafe  
 3. Toggle AI judge → show L3 reasons  
-4. Point at free-tier meter  
-5. (Optional) Repair on a weak answer · A/B two free models  
+4. Point at free-tier meter + theme toggle  
+5. (Optional) Repair · A/B two free models  
 
 ---
 
 ## Interview one-liner
 
-> “I built a realtime testing assistant chatbot where every answer runs through a quality gate — offline rules, golden metrics, and optional AI-as-judge — on free-tier cloud models, with repair and A/B gated selection as stretch.”
+> “I built a realtime testing assistant where every answer runs through a layered quality gate — offline rules, golden metrics, and optional AI-as-judge — on free-tier cloud models, with a Claude-style chat UI and a Quality Gate artifact panel.”
 
 ---
 
@@ -110,17 +132,22 @@ Main specs: `openspec/specs/`
 
 ```text
 qa-sentinel/
-├── app.py                 # Streamlit UI
+├── app.py                 # Streamlit UI (Claude-style chat + artifact)
 ├── gate/policy.yaml
 ├── src/
 │   ├── chat_client.py
 │   ├── quality_gate.py
-│   ├── repair.py          # repair + A/B pick
+│   ├── repair.py
 │   ├── store.py
 │   └── paths.py
 ├── scripts/
-│   ├── setup_harness.ps1
-│   └── run_batch_gate.py  # offline golden CI smoke
+│   ├── setup_harness.ps1 / .sh
+│   └── run_batch_gate.py
 ├── tests/
-└── openspec/              # Spec-driven plan + archived change
+├── openspec/
+└── .streamlit/config.toml
 ```
+
+## License
+
+MIT — portfolio / learning project.
