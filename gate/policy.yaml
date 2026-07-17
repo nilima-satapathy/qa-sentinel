@@ -14,7 +14,7 @@ must_include_warn: 0.35
 overlap_pass: 0.12
 overlap_warn: 0.06
 
-# L3 AI judge (0–1)
+# L3 AI judge (0–1) — UI default is ON (uses free-tier API when key is set)
 judge_pass: 0.6
 judge_warn: 0.4
 

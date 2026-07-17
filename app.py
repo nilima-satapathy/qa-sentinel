@@ -1258,7 +1258,11 @@ def main() -> None:
         st.caption("Claude-style warm light / evening dark")
         st.divider()
         st.markdown("### Settings")
-        use_judge = st.toggle("AI-as-judge (L3)", value=False)
+        use_judge = st.toggle(
+            "AI-as-judge (L3)",
+            value=True,
+            help="On by default — scores each answer with a free-tier LLM judge (extra tokens). Turn off to save credits.",
+        )
         enable_repair = st.toggle("Repair loop", value=False)
         enable_ab = st.toggle(
             "A/B dual models",
