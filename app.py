@@ -1,5 +1,5 @@
 """
-QA Sentinel — Design 1: Chat + Quality Artifact panel.
+QA Sentinel — Design 1: Chat + Quality Artifact panel (dark / soft light themes).
 
   python -m streamlit run app.py
 """
@@ -9,7 +9,7 @@ from __future__ import annotations
 import html
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import streamlit as st
 from dotenv import load_dotenv
@@ -26,6 +26,8 @@ from src.quality_gate import GateResult, evaluate_answer, load_policy  # noqa: E
 from src.repair import pick_ab_winner, try_repair  # noqa: E402
 from src.store import TurnStore  # noqa: E402
 
+ThemeName = Literal["dark", "light"]
+
 st.set_page_config(
     page_title="QA Sentinel",
     page_icon="🛡️",
@@ -34,10 +36,10 @@ st.set_page_config(
 )
 
 # ---------------------------------------------------------------------------
-# Design 1 — soft dark + emerald artifact
+# Themes — Design 1 Chat + Artifact
 # ---------------------------------------------------------------------------
 
-APP_CSS = """
+BASE_CSS = """
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
@@ -46,8 +48,8 @@ html, body, [class*="css"] {
 }
 
 .stApp {
-  background: #12141a;
-  color: #e8eaed;
+  background: var(--qs-bg);
+  color: var(--qs-text);
 }
 
 #MainMenu, footer, header { visibility: hidden; }
@@ -69,7 +71,7 @@ div[data-testid="stToolbar"] { display: none; }
   gap: 1rem;
   margin-bottom: 0.85rem;
   padding: 0.35rem 0.15rem 0.85rem;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  border-bottom: 1px solid var(--qs-border);
 }
 .qs-brand {
   display: flex;
@@ -85,17 +87,17 @@ div[data-testid="stToolbar"] { display: none; }
   align-items: center;
   justify-content: center;
   font-size: 1rem;
-  box-shadow: 0 0 20px rgba(52, 211, 153, 0.25);
+  box-shadow: 0 0 20px var(--qs-logo-glow);
 }
 .qs-brand-name {
   font-size: 1.1rem;
   font-weight: 700;
   letter-spacing: -0.03em;
-  color: #f8fafc;
+  color: var(--qs-text-strong);
 }
 .qs-brand-sub {
   font-size: 0.72rem;
-  color: #6b7280;
+  color: var(--qs-muted);
   font-weight: 500;
 }
 .qs-top-meta {
@@ -112,50 +114,39 @@ div[data-testid="stToolbar"] { display: none; }
   border-radius: 999px;
   font-size: 0.72rem;
   font-weight: 600;
-  border: 1px solid rgba(255,255,255,0.08);
-  background: rgba(255,255,255,0.04);
-  color: #9ca3af;
+  border: 1px solid var(--qs-border);
+  background: var(--qs-pill-bg);
+  color: var(--qs-muted-strong);
 }
 .qs-pill-live {
-  color: #6ee7b7;
-  border-color: rgba(52, 211, 153, 0.3);
-  background: rgba(16, 185, 129, 0.1);
+  color: var(--qs-pass);
+  border-color: var(--qs-pass-border);
+  background: var(--qs-pass-bg);
 }
 .qs-pill-off {
-  color: #fcd34d;
-  border-color: rgba(251, 191, 36, 0.28);
-  background: rgba(245, 158, 11, 0.1);
+  color: var(--qs-warn);
+  border-color: var(--qs-warn-border);
+  background: var(--qs-warn-bg);
 }
 
-/* Layout columns */
-.qs-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 320px;
-  gap: 1rem;
-  align-items: start;
-}
-@media (max-width: 960px) {
-  .qs-layout { grid-template-columns: 1fr; }
-}
-
-/* Chat column */
-.qs-chat-shell {
-  min-height: 420px;
-  border-radius: 16px;
-  background: #1a1d24;
-  border: 1px solid rgba(255,255,255,0.06);
-  padding: 1rem 1.1rem 0.85rem;
-}
 .qs-session-label {
   font-size: 0.72rem;
   font-weight: 600;
-  color: #6b7280;
+  color: var(--qs-muted);
   letter-spacing: 0.04em;
   text-transform: uppercase;
   margin-bottom: 0.75rem;
 }
 
-/* Empty state */
+.qs-chat-shell {
+  min-height: 420px;
+  border-radius: 16px;
+  background: var(--qs-surface);
+  border: 1px solid var(--qs-border);
+  padding: 1rem 1.1rem 0.85rem;
+  box-shadow: var(--qs-shadow-soft);
+}
+
 .qs-empty {
   text-align: center;
   padding: 2.75rem 1.25rem 2rem;
@@ -165,8 +156,8 @@ div[data-testid="stToolbar"] { display: none; }
   height: 52px;
   margin: 0 auto 0.85rem;
   border-radius: 14px;
-  background: rgba(52, 211, 153, 0.12);
-  border: 1px solid rgba(52, 211, 153, 0.25);
+  background: var(--qs-pass-bg);
+  border: 1px solid var(--qs-pass-border);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -174,19 +165,18 @@ div[data-testid="stToolbar"] { display: none; }
 }
 .qs-empty h3 {
   margin: 0 0 0.4rem;
-  color: #f3f4f6;
+  color: var(--qs-text-strong);
   font-size: 1.15rem;
   font-weight: 600;
 }
 .qs-empty p {
   margin: 0 auto;
   max-width: 28rem;
-  color: #9ca3af;
+  color: var(--qs-muted-strong);
   font-size: 0.9rem;
   line-height: 1.55;
 }
 
-/* Messages */
 div[data-testid="stChatMessage"] {
   background: transparent !important;
   border: none !important;
@@ -194,11 +184,10 @@ div[data-testid="stChatMessage"] {
   margin-bottom: 0.35rem;
 }
 div[data-testid="stChatMessage"] p {
-  color: #e5e7eb;
+  color: var(--qs-text);
   line-height: 1.55;
 }
 
-/* Status chip under message */
 .qs-status-chip {
   display: inline-flex;
   align-items: center;
@@ -212,26 +201,25 @@ div[data-testid="stChatMessage"] p {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
 }
 .qs-status-pass {
-  background: rgba(16, 185, 129, 0.15);
-  color: #6ee7b7;
-  border: 1px solid rgba(52, 211, 153, 0.35);
+  background: var(--qs-pass-bg);
+  color: var(--qs-pass);
+  border: 1px solid var(--qs-pass-border);
 }
 .qs-status-warn {
-  background: rgba(245, 158, 11, 0.15);
-  color: #fcd34d;
-  border: 1px solid rgba(251, 191, 36, 0.35);
+  background: var(--qs-warn-bg);
+  color: var(--qs-warn);
+  border: 1px solid var(--qs-warn-border);
 }
 .qs-status-fail {
-  background: rgba(239, 68, 68, 0.15);
-  color: #fca5a5;
-  border: 1px solid rgba(248, 113, 113, 0.35);
+  background: var(--qs-fail-bg);
+  color: var(--qs-fail);
+  border: 1px solid var(--qs-fail-border);
 }
 .qs-status-meta {
   font-weight: 500;
   opacity: 0.85;
 }
 
-/* Free tier strip under chat */
 .qs-freebar {
   display: flex;
   align-items: center;
@@ -239,12 +227,12 @@ div[data-testid="stChatMessage"] p {
   margin-top: 0.85rem;
   padding: 0.55rem 0.7rem;
   border-radius: 10px;
-  background: rgba(0,0,0,0.25);
-  border: 1px solid rgba(255,255,255,0.05);
+  background: var(--qs-inset);
+  border: 1px solid var(--qs-border);
 }
 .qs-freebar-label {
   font-size: 0.72rem;
-  color: #9ca3af;
+  color: var(--qs-muted-strong);
   white-space: nowrap;
   font-weight: 500;
 }
@@ -252,7 +240,7 @@ div[data-testid="stChatMessage"] p {
   flex: 1;
   height: 6px;
   border-radius: 999px;
-  background: rgba(255,255,255,0.08);
+  background: var(--qs-track);
   overflow: hidden;
 }
 .qs-freebar-fill {
@@ -262,17 +250,16 @@ div[data-testid="stChatMessage"] p {
 }
 .qs-freebar-nums {
   font-size: 0.72rem;
-  color: #6b7280;
+  color: var(--qs-muted);
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   white-space: nowrap;
 }
 
-/* Artifact panel */
 .qs-artifact {
   border-radius: 16px;
-  background: #1a1d24;
-  border: 1px solid rgba(52, 211, 153, 0.18);
-  box-shadow: 0 0 40px rgba(16, 185, 129, 0.06);
+  background: var(--qs-surface);
+  border: 1px solid var(--qs-artifact-border);
+  box-shadow: var(--qs-artifact-shadow);
   overflow: hidden;
   position: sticky;
   top: 0.5rem;
@@ -282,13 +269,13 @@ div[data-testid="stChatMessage"] p {
   align-items: center;
   justify-content: space-between;
   padding: 0.85rem 1rem;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
-  background: rgba(16, 185, 129, 0.06);
+  border-bottom: 1px solid var(--qs-border);
+  background: var(--qs-artifact-head);
 }
 .qs-artifact-title {
   font-size: 0.82rem;
   font-weight: 700;
-  color: #f3f4f6;
+  color: var(--qs-text-strong);
   letter-spacing: -0.01em;
 }
 .qs-artifact-badge {
@@ -298,6 +285,22 @@ div[data-testid="stChatMessage"] p {
   border-radius: 999px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
+}
+.qs-badge-pass {
+  background: var(--qs-pass-bg);
+  color: var(--qs-pass);
+}
+.qs-badge-warn {
+  background: var(--qs-warn-bg);
+  color: var(--qs-warn);
+}
+.qs-badge-fail {
+  background: var(--qs-fail-bg);
+  color: var(--qs-fail);
+}
+.qs-badge-idle {
+  background: var(--qs-pill-bg);
+  color: var(--qs-muted);
 }
 .qs-artifact-body {
   padding: 1.1rem 1rem 1.15rem;
@@ -316,33 +319,31 @@ div[data-testid="stChatMessage"] p {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  border: 5px solid #374151;
-  background: radial-gradient(circle at 40% 35%, rgba(255,255,255,0.04), transparent 55%);
+  border: 5px solid var(--qs-ring-idle);
+  background: var(--qs-ring-bg);
 }
 .qs-ring-pass {
   border-color: #10b981;
-  box-shadow: 0 0 28px rgba(16, 185, 129, 0.25);
+  box-shadow: 0 0 28px var(--qs-ring-glow-pass);
 }
 .qs-ring-warn {
   border-color: #f59e0b;
-  box-shadow: 0 0 28px rgba(245, 158, 11, 0.2);
+  box-shadow: 0 0 28px var(--qs-ring-glow-warn);
 }
 .qs-ring-fail {
   border-color: #ef4444;
-  box-shadow: 0 0 28px rgba(239, 68, 68, 0.2);
+  box-shadow: 0 0 28px var(--qs-ring-glow-fail);
 }
-.qs-ring-idle {
-  border-color: #374151;
-}
+.qs-ring-idle { border-color: var(--qs-ring-idle); }
 .qs-ring-status {
   font-size: 1.15rem;
   font-weight: 800;
   letter-spacing: 0.04em;
-  color: #f9fafb;
+  color: var(--qs-text-strong);
 }
 .qs-ring-sub {
   font-size: 0.7rem;
-  color: #9ca3af;
+  color: var(--qs-muted);
   margin-top: 0.15rem;
 }
 .qs-layer-list {
@@ -358,30 +359,27 @@ div[data-testid="stChatMessage"] p {
   gap: 0.5rem;
   padding: 0.5rem 0.6rem;
   border-radius: 10px;
-  background: rgba(0,0,0,0.22);
-  border: 1px solid rgba(255,255,255,0.05);
+  background: var(--qs-inset);
+  border: 1px solid var(--qs-border);
   font-size: 0.78rem;
 }
 .qs-layer-name {
   font-weight: 600;
-  color: #d1d5db;
+  color: var(--qs-muted-strong);
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.72rem;
 }
-.qs-layer-val {
-  font-weight: 600;
-  font-size: 0.72rem;
-}
-.qs-ok { color: #6ee7b7; }
-.qs-wn { color: #fcd34d; }
-.qs-fl { color: #fca5a5; }
-.qs-sk { color: #6b7280; }
+.qs-layer-val { font-weight: 600; font-size: 0.72rem; }
+.qs-ok { color: var(--qs-pass); }
+.qs-wn { color: var(--qs-warn); }
+.qs-fl { color: var(--qs-fail); }
+.qs-sk { color: var(--qs-muted); }
 .qs-section {
   font-size: 0.7rem;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: #6b7280;
+  color: var(--qs-muted);
   margin: 0.35rem 0 0.45rem;
 }
 .qs-reason {
@@ -390,7 +388,7 @@ div[data-testid="stChatMessage"] p {
   align-items: flex-start;
   padding: 0.28rem 0;
   font-size: 0.8rem;
-  color: #c4c9d2;
+  color: var(--qs-text);
   line-height: 1.4;
 }
 .qs-dot {
@@ -404,7 +402,7 @@ div[data-testid="stChatMessage"] p {
 .qs-idle-hint {
   text-align: center;
   padding: 0.5rem 0.25rem 0.25rem;
-  color: #6b7280;
+  color: var(--qs-muted);
   font-size: 0.82rem;
   line-height: 1.5;
 }
@@ -417,76 +415,195 @@ div[data-testid="stChatMessage"] p {
 .qs-meta-card {
   padding: 0.5rem 0.55rem;
   border-radius: 10px;
-  background: rgba(0,0,0,0.22);
-  border: 1px solid rgba(255,255,255,0.05);
+  background: var(--qs-inset);
+  border: 1px solid var(--qs-border);
 }
 .qs-meta-card .k {
   font-size: 0.65rem;
-  color: #6b7280;
+  color: var(--qs-muted);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
 .qs-meta-card .v {
   font-size: 0.82rem;
-  color: #e5e7eb;
+  color: var(--qs-text-strong);
   font-weight: 600;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   margin-top: 0.15rem;
 }
 
-/* Sidebar controls (collapsed by default; settings) */
+.qs-chips-label {
+  font-size: 0.7rem;
+  color: var(--qs-muted);
+  font-weight: 600;
+  margin: 0.35rem 0 0.25rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
 section[data-testid="stSidebar"] {
-  background: #16181f;
-  border-right: 1px solid rgba(255,255,255,0.06);
+  background: var(--qs-sidebar) !important;
+  border-right: 1px solid var(--qs-border);
 }
 section[data-testid="stSidebar"] .block-container {
   padding-top: 1.25rem !important;
 }
+section[data-testid="stSidebar"] h1,
+section[data-testid="stSidebar"] h2,
+section[data-testid="stSidebar"] h3,
+section[data-testid="stSidebar"] label,
+section[data-testid="stSidebar"] p,
+section[data-testid="stSidebar"] span {
+  color: var(--qs-text) !important;
+}
+
 .stButton > button {
   border-radius: 10px !important;
-  border: 1px solid rgba(255,255,255,0.08) !important;
-  background: rgba(255,255,255,0.04) !important;
-  color: #e5e7eb !important;
+  border: 1px solid var(--qs-border) !important;
+  background: var(--qs-btn-bg) !important;
+  color: var(--qs-text-strong) !important;
   font-weight: 600 !important;
 }
 .stButton > button:hover {
-  border-color: rgba(52, 211, 153, 0.4) !important;
-  background: rgba(16, 185, 129, 0.12) !important;
-  color: #ecfdf5 !important;
+  border-color: var(--qs-pass-border) !important;
+  background: var(--qs-pass-bg) !important;
+  color: var(--qs-text-strong) !important;
 }
 .stButton > button[kind="primary"] {
   background: linear-gradient(135deg, #059669, #10b981) !important;
   border: none !important;
   color: white !important;
 }
+
 div[data-testid="stProgress"] > div {
-  background: rgba(255,255,255,0.08) !important;
+  background: var(--qs-track) !important;
   border-radius: 999px !important;
 }
 div[data-testid="stProgress"] > div > div {
   background: linear-gradient(90deg, #10b981, #34d399) !important;
 }
 div[data-testid="stExpander"] {
-  background: rgba(0,0,0,0.2);
+  background: var(--qs-inset);
   border-radius: 10px;
-  border: 1px solid rgba(255,255,255,0.06);
+  border: 1px solid var(--qs-border);
 }
-/* Suggestion chips row spacing */
-.qs-chips-label {
-  font-size: 0.7rem;
-  color: #6b7280;
-  font-weight: 600;
-  margin: 0.35rem 0 0.25rem;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+
+/* Chat input */
+div[data-testid="stChatInput"] textarea {
+  color: var(--qs-text) !important;
+}
+</style>
+"""
+
+DARK_VARS = """
+<style>
+.stApp {
+  --qs-bg: #12141a;
+  --qs-surface: #1a1d24;
+  --qs-sidebar: #16181f;
+  --qs-inset: rgba(0,0,0,0.25);
+  --qs-border: rgba(255,255,255,0.06);
+  --qs-text: #e8eaed;
+  --qs-text-strong: #f8fafc;
+  --qs-muted: #6b7280;
+  --qs-muted-strong: #9ca3af;
+  --qs-pill-bg: rgba(255,255,255,0.04);
+  --qs-pass: #6ee7b7;
+  --qs-pass-bg: rgba(16, 185, 129, 0.12);
+  --qs-pass-border: rgba(52, 211, 153, 0.35);
+  --qs-warn: #fcd34d;
+  --qs-warn-bg: rgba(245, 158, 11, 0.12);
+  --qs-warn-border: rgba(251, 191, 36, 0.35);
+  --qs-fail: #fca5a5;
+  --qs-fail-bg: rgba(239, 68, 68, 0.12);
+  --qs-fail-border: rgba(248, 113, 113, 0.35);
+  --qs-track: rgba(255,255,255,0.08);
+  --qs-logo-glow: rgba(52, 211, 153, 0.25);
+  --qs-artifact-border: rgba(52, 211, 153, 0.18);
+  --qs-artifact-shadow: 0 0 40px rgba(16, 185, 129, 0.06);
+  --qs-artifact-head: rgba(16, 185, 129, 0.06);
+  --qs-ring-idle: #374151;
+  --qs-ring-bg: radial-gradient(circle at 40% 35%, rgba(255,255,255,0.04), transparent 55%);
+  --qs-ring-glow-pass: rgba(16, 185, 129, 0.25);
+  --qs-ring-glow-warn: rgba(245, 158, 11, 0.2);
+  --qs-ring-glow-fail: rgba(239, 68, 68, 0.2);
+  --qs-btn-bg: rgba(255,255,255,0.04);
+  --qs-shadow-soft: none;
+  color: #e8eaed;
+  background: #12141a;
+}
+</style>
+"""
+
+LIGHT_VARS = """
+<style>
+.stApp {
+  --qs-bg: #f7f6f3;
+  --qs-surface: #ffffff;
+  --qs-sidebar: #f0eeea;
+  --qs-inset: #f3f2ef;
+  --qs-border: rgba(15, 23, 42, 0.08);
+  --qs-text: #1f2937;
+  --qs-text-strong: #0f172a;
+  --qs-muted: #94a3b8;
+  --qs-muted-strong: #64748b;
+  --qs-pill-bg: rgba(15, 23, 42, 0.04);
+  --qs-pass: #059669;
+  --qs-pass-bg: rgba(16, 185, 129, 0.12);
+  --qs-pass-border: rgba(16, 185, 129, 0.35);
+  --qs-warn: #b45309;
+  --qs-warn-bg: rgba(245, 158, 11, 0.14);
+  --qs-warn-border: rgba(245, 158, 11, 0.35);
+  --qs-fail: #dc2626;
+  --qs-fail-bg: rgba(239, 68, 68, 0.1);
+  --qs-fail-border: rgba(239, 68, 68, 0.3);
+  --qs-track: rgba(15, 23, 42, 0.08);
+  --qs-logo-glow: rgba(16, 185, 129, 0.2);
+  --qs-artifact-border: rgba(16, 185, 129, 0.22);
+  --qs-artifact-shadow: 0 12px 32px rgba(15, 23, 42, 0.06);
+  --qs-artifact-head: rgba(16, 185, 129, 0.08);
+  --qs-ring-idle: #d1d5db;
+  --qs-ring-bg: radial-gradient(circle at 40% 35%, rgba(16, 185, 129, 0.06), transparent 55%);
+  --qs-ring-glow-pass: rgba(16, 185, 129, 0.18);
+  --qs-ring-glow-warn: rgba(245, 158, 11, 0.15);
+  --qs-ring-glow-fail: rgba(239, 68, 68, 0.12);
+  --qs-btn-bg: #ffffff;
+  --qs-shadow-soft: 0 8px 24px rgba(15, 23, 42, 0.04);
+  color: #1f2937;
+  background:
+    radial-gradient(900px 400px at 10% -5%, rgba(16, 185, 129, 0.07), transparent 50%),
+    radial-gradient(700px 320px at 90% 0%, rgba(99, 102, 241, 0.05), transparent 45%),
+    #f7f6f3;
+}
+/* Streamlit light chrome tweaks */
+section[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p,
+section[data-testid="stSidebar"] label {
+  color: #1f2937 !important;
+}
+div[data-testid="stChatInput"] {
+  background: transparent;
 }
 </style>
 """
 
 
-def inject_css() -> None:
-    st.markdown(APP_CSS, unsafe_allow_html=True)
+def get_theme() -> ThemeName:
+    t = st.session_state.get("theme", "dark")
+    return "light" if t == "light" else "dark"
+
+
+def set_theme(theme: ThemeName) -> None:
+    st.session_state.theme = theme
+    # Keep radio widget in sync when toggled from the main-canvas button
+    st.session_state.theme_radio = (
+        "☀️ Soft light" if theme == "light" else "🌙 Dark"
+    )
+
+
+def inject_css(theme: ThemeName) -> None:
+    vars_css = LIGHT_VARS if theme == "light" else DARK_VARS
+    st.markdown(vars_css + BASE_CSS, unsafe_allow_html=True)
 
 
 def esc(text: Any) -> str:
@@ -668,7 +785,6 @@ def process_turn(
             "meta": meta,
         }
     )
-    # Latest artifact panel state
     st.session_state.last_gate = gate.to_dict()
     st.session_state.last_meta = meta
 
@@ -686,7 +802,6 @@ def session_pass_rate(stats: dict) -> float:
 
 
 def _layer_status(gate: dict, key: str) -> tuple[str, str]:
-    """Return (label, css_class) for a gate layer."""
     layers = gate.get("layers") or {}
     scores = gate.get("scores") or {}
     layer = layers.get(key) or {}
@@ -733,12 +848,12 @@ def render_artifact_panel(gate: dict | None, meta: dict | None) -> None:
 <div class="qs-artifact">
   <div class="qs-artifact-head">
     <span class="qs-artifact-title">Quality Gate</span>
-    <span class="qs-artifact-badge qs-sk" style="background:rgba(255,255,255,0.06);color:#9ca3af">Idle</span>
+    <span class="qs-artifact-badge qs-badge-idle">Idle</span>
   </div>
   <div class="qs-artifact-body">
     <div class="qs-ring-wrap">
       <div class="qs-ring qs-ring-idle">
-        <div class="qs-ring-status" style="font-size:0.95rem;color:#6b7280">—</div>
+        <div class="qs-ring-status" style="font-size:0.95rem;opacity:0.55">—</div>
         <div class="qs-ring-sub">awaiting turn</div>
       </div>
     </div>
@@ -765,11 +880,11 @@ def render_artifact_panel(gate: dict | None, meta: dict | None) -> None:
         "WARN": "qs-ring-warn",
         "FAIL": "qs-ring-fail",
     }.get(status, "qs-ring-idle")
-    badge_bg = {
-        "PASS": "background:rgba(16,185,129,0.2);color:#6ee7b7",
-        "WARN": "background:rgba(245,158,11,0.2);color:#fcd34d",
-        "FAIL": "background:rgba(239,68,68,0.2);color:#fca5a5",
-    }.get(status, "background:rgba(255,255,255,0.06);color:#9ca3af")
+    badge_cls = {
+        "PASS": "qs-badge-pass",
+        "WARN": "qs-badge-warn",
+        "FAIL": "qs-badge-fail",
+    }.get(status, "qs-badge-idle")
 
     layers_html = ""
     layer_labels = {
@@ -824,7 +939,10 @@ def render_artifact_panel(gate: dict | None, meta: dict | None) -> None:
     if extras:
         extras_html = (
             '<div class="qs-section">Extras</div>'
-            + "".join(f'<div class="qs-reason"><span class="qs-dot"></span><span>{x}</span></div>' for x in extras)
+            + "".join(
+                f'<div class="qs-reason"><span class="qs-dot"></span><span>{x}</span></div>'
+                for x in extras
+            )
         )
 
     st.markdown(
@@ -832,7 +950,7 @@ def render_artifact_panel(gate: dict | None, meta: dict | None) -> None:
 <div class="qs-artifact">
   <div class="qs-artifact-head">
     <span class="qs-artifact-title">Quality Gate</span>
-    <span class="qs-artifact-badge" style="{badge_bg}">{esc(status)}</span>
+    <span class="qs-artifact-badge {badge_cls}">{esc(status)}</span>
   </div>
   <div class="qs-artifact-body">
     <div class="qs-ring-wrap">
@@ -870,6 +988,8 @@ def render_topbar(client: ChatClient, meter: dict, pass_rate: float, stats: dict
         else '<span class="qs-pill">No gated turns yet</span>'
     )
     tokens = f'<span class="qs-pill">{meter["tokens_remaining"]:,} tokens left</span>'
+    theme = get_theme()
+    theme_label = "Soft light" if theme == "light" else "Dark"
     st.markdown(
         f"""
 <div class="qs-topbar">
@@ -877,7 +997,7 @@ def render_topbar(client: ChatClient, meter: dict, pass_rate: float, stats: dict
     <div class="qs-logo">🛡️</div>
     <div>
       <div class="qs-brand-name">QA Sentinel</div>
-      <div class="qs-brand-sub">Chat + quality gate artifact</div>
+      <div class="qs-brand-sub">Chat + quality gate artifact · {esc(theme_label)}</div>
     </div>
   </div>
   <div class="qs-top-meta">
@@ -909,6 +1029,28 @@ def render_freebar(meter: dict) -> None:
     )
 
 
+def render_theme_toggle() -> ThemeName:
+    """Segmented theme control; returns current theme after update."""
+    current = get_theme()
+    options = ["🌙 Dark", "☀️ Soft light"]
+    if "theme_radio" not in st.session_state:
+        st.session_state.theme_radio = (
+            "☀️ Soft light" if current == "light" else "🌙 Dark"
+        )
+    choice = st.radio(
+        "Theme",
+        options,
+        horizontal=True,
+        label_visibility="collapsed",
+        key="theme_radio",
+    )
+    new_theme: ThemeName = "light" if "light" in choice.lower() else "dark"
+    if new_theme != current:
+        st.session_state.theme = new_theme
+        st.rerun()
+    return new_theme
+
+
 EXAMPLE_PROMPTS = [
     "What is a flaky test, and why is it harmful in CI?",
     "What is the difference between smoke and regression testing?",
@@ -918,7 +1060,11 @@ EXAMPLE_PROMPTS = [
 
 
 def main() -> None:
-    inject_css()
+    if "theme" not in st.session_state:
+        st.session_state.theme = "dark"
+
+    theme = get_theme()
+    inject_css(theme)
 
     try:
         ensure_import_paths()
@@ -940,10 +1086,13 @@ def main() -> None:
     stats = store.session_stats()
     pass_rate = session_pass_rate(stats)
 
-    # --- Settings (sidebar) ---
     with st.sidebar:
+        st.markdown("### Appearance")
+        render_theme_toggle()
+        st.caption("Dark · Soft light (Design 1)")
+        st.divider()
         st.markdown("### Settings")
-        st.caption("Gate options & red-team (Design 1 controls)")
+        st.caption("Gate options & red-team")
         use_judge = st.toggle(
             "AI-as-judge (L3)",
             value=False,
@@ -978,15 +1127,30 @@ def main() -> None:
             st.session_state.last_meta = {}
             st.rerun()
         st.caption(f"Model B: `{client.secondary_model()}`")
-        st.caption("Open sidebar (›) for controls")
 
-    render_topbar(client, meter, pass_rate, stats)
+    # Compact theme switch on main canvas (next to top bar)
+    t1, t2 = st.columns([5, 1.2])
+    with t1:
+        render_topbar(client, meter, pass_rate, stats)
+    with t2:
+        st.markdown('<div style="height:0.35rem"></div>', unsafe_allow_html=True)
+        current = get_theme()
+        if current == "dark":
+            if st.button("☀️ Light", key="theme_main_to_light", use_container_width=True):
+                set_theme("light")
+                st.rerun()
+        else:
+            if st.button("🌙 Dark", key="theme_main_to_dark", use_container_width=True):
+                set_theme("dark")
+                st.rerun()
 
-    # --- Main: chat | artifact ---
     chat_col, art_col = st.columns([1.55, 1], gap="medium")
 
     with chat_col:
-        st.markdown('<div class="qs-session-label">Conversation</div>', unsafe_allow_html=True)
+        st.markdown(
+            '<div class="qs-session-label">Conversation</div>',
+            unsafe_allow_html=True,
+        )
 
         if not st.session_state.messages:
             st.markdown(
@@ -1014,7 +1178,10 @@ def main() -> None:
 
         render_freebar(meter)
 
-        st.markdown('<div class="qs-chips-label">Try</div>', unsafe_allow_html=True)
+        st.markdown(
+            '<div class="qs-chips-label">Try</div>',
+            unsafe_allow_html=True,
+        )
         chip_cols = st.columns(4)
         for i, ex in enumerate(EXAMPLE_PROMPTS):
             short = ex if len(ex) < 28 else ex[:25] + "…"
