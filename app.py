@@ -588,20 +588,51 @@ div[data-testid="stChatInput"] textarea::placeholder {
   opacity: 1 !important;
 }
 
+/* Send button — avoid broken Material glyph (was a white square) */
 button[data-testid="stChatInputSubmitButton"] {
+  position: relative !important;
   background: var(--c-accent) !important;
   background-color: var(--c-accent) !important;
-  color: #fff !important;
+  color: transparent !important;
   border: none !important;
   border-radius: 999px !important;
+  min-width: 2.35rem !important;
+  min-height: 2.35rem !important;
+  width: 2.35rem !important;
+  height: 2.35rem !important;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: 0 2px 8px var(--c-accent-glow) !important;
 }
 button[data-testid="stChatInputSubmitButton"]:hover {
-  filter: brightness(1.06);
+  filter: brightness(1.07);
 }
-button[data-testid="stChatInputSubmitButton"] svg,
-button[data-testid="stChatInputSubmitButton"] path {
-  fill: #fff !important;
-  color: #fff !important;
+/* Hide native icon (often renders as solid square under custom fills) */
+button[data-testid="stChatInputSubmitButton"] > *,
+button[data-testid="stChatInputSubmitButton"] span,
+button[data-testid="stChatInputSubmitButton"] svg {
+  opacity: 0 !important;
+  width: 0 !important;
+  height: 0 !important;
+  overflow: hidden !important;
+  position: absolute !important;
+}
+/* Crisp send arrow (replaces broken white square icon) */
+button[data-testid="stChatInputSubmitButton"]::after {
+  content: "↑" !important;
+  display: block !important;
+  color: #ffffff !important;
+  font-size: 1.2rem !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+  opacity: 1 !important;
+  position: static !important;
+  width: auto !important;
+  height: auto !important;
+  transform: none !important;
+  font-family: system-ui, -apple-system, sans-serif !important;
 }
 button[data-testid="stChatInputFileUploadButton"],
 button[data-testid="stChatInputMicButton"] {
