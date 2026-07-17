@@ -1,0 +1,50 @@
+schema: spec-driven
+
+# Shown to AI when creating/updating OpenSpec artifacts
+context: |
+  Project: QA Sentinel (Portfolio Project 5 — AI QA / GenAI SDET)
+  Owner: Nilima Satapathy
+  Domain: Software-testing assistant chatbot with per-answer quality gates
+
+  Goal:
+    Realtime AI chatbot. Every user question gets a cloud LLM answer (free tier,
+    e.g. Groq OpenAI-compatible API). Every answer is scored by a quality gate
+    (offline rules + optional AI-as-judge). UI shows PASS / WARN / FAIL with reasons,
+    latency, tokens, and free-credit usage.
+
+  Depends on Project 4 (reuse, do not reinvent):
+    Repo: https://github.com/nilima-satapathy/llm-eval-dashboard
+    Reuse: golden_dataset, red_team_cases, metrics_basic, OpenAI-compatible client patterns
+
+  Stack (planned):
+    - Python 3.11+
+    - Streamlit (chat UI)
+    - requests + OpenAI-compatible chat (Groq free tier default)
+    - Offline metrics: must_include, reference_overlap, must_not_include
+    - Optional second free-tier call as LLM-as-judge
+    - SQLite for turn history
+    - Path: C:\Users\admin\Code\qa-sentinel (not OneDrive)
+
+  Constraints:
+    - Free cloud credits only for demos (Groq llama-3.1-8b-instant or similar)
+    - Default path must work offline with golden fallback when no API key
+    - Portfolio scope — not multi-tenant production SaaS
+    - Showcase "AI in quality gates" (judge optional, offline rules always on)
+
+  Portfolio stack context:
+    P1 API automation · P2 Playwright · P3 DocQ RAG · P4 LLM Eval Dashboard · P5 this project
+
+rules:
+  proposal:
+    - Keep portfolio-scoped; call out free-tier strategy
+    - Include Non-goals
+    - Call out better ideas as Stretch, not MVP blockers
+  design:
+    - Prefer reusing llm-eval-dashboard metrics and datasets
+    - Document gate layers (offline → golden match → optional AI judge)
+  tasks:
+    - Break into MVP milestones first; mark stretch separately
+    - Each task verifiable locally without paid APIs when possible
+  specs:
+    - Use SHALL/MUST language
+    - Every requirement needs at least one WHEN/THEN scenario
