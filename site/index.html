@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>QA Sentinel — Realtime AI Quality Gate | Nilima Satapathy</title>
+  <meta name="description" content="QA Sentinel: software-testing chatbot with per-answer quality gates (L1 offline policy, L2 golden metrics, L3 LLM-as-judge). Portfolio by Nilima Satapathy." />
+  <meta property="og:title" content="QA Sentinel — Realtime Chat Quality Gate" />
+  <meta property="og:description" content="Every AI answer is quality-gated. L1 · L2 · L3. Built for AI QA / GenAI SDET roles." />
+  <meta property="og:type" content="website" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&family=Source+Serif+4:wght@600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #f5f0e8;
+      --surface: #fffcf7;
+      --text: #2c2418;
+      --muted: #6b5d4d;
+      --accent: #c96442;
+      --border: rgba(60, 40, 20, 0.12);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Source Sans 3", system-ui, sans-serif;
+      background:
+        radial-gradient(800px 360px at 50% -10%, rgba(201, 100, 66, 0.08), transparent 55%),
+        var(--bg);
+      color: var(--text);
+      line-height: 1.55;
+      min-height: 100vh;
+    }
+    .wrap {
+      max-width: 880px;
+      margin: 0 auto;
+      padding: 2.5rem 1.25rem 3rem;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--accent);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      margin-bottom: 0.75rem;
+    }
+    h1 {
+      font-family: "Source Serif 4", Georgia, serif;
+      font-size: clamp(1.8rem, 4vw, 2.4rem);
+      font-weight: 600;
+      letter-spacing: -0.03em;
+      margin: 0 0 0.6rem;
+      line-height: 1.2;
+    }
+    .lead {
+      font-size: 1.05rem;
+      color: var(--muted);
+      max-width: 38rem;
+      margin: 0 0 1.5rem;
+    }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.65rem;
+      margin-bottom: 2rem;
+    }
+    a.btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.7rem 1.15rem;
+      border-radius: 999px;
+      font-weight: 600;
+      font-size: 0.92rem;
+      text-decoration: none;
+      border: 1px solid var(--border);
+      transition: 0.15s ease;
+    }
+    a.btn-primary {
+      background: var(--accent);
+      color: #fff;
+      border-color: transparent;
+    }
+    a.btn-primary:hover { filter: brightness(1.06); }
+    a.btn-ghost {
+      background: var(--surface);
+      color: var(--text);
+    }
+    a.btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.25rem 1.35rem;
+      margin-bottom: 1rem;
+      box-shadow: 0 10px 30px rgba(60, 40, 20, 0.05);
+    }
+    .card h2 {
+      font-size: 0.95rem;
+      margin: 0 0 0.65rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .layers {
+      display: grid;
+      gap: 0.55rem;
+    }
+    .layer {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 0.65rem 0.8rem;
+      border-radius: 10px;
+      background: rgba(60, 40, 20, 0.04);
+      font-size: 0.92rem;
+    }
+    .layer b { color: var(--accent); }
+    .shot {
+      width: 100%;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      display: block;
+      margin: 1.25rem 0 0.5rem;
+      background: #eee;
+    }
+    .note {
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-top: 1.25rem;
+    }
+    footer {
+      margin-top: 2rem;
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+    footer a { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="badge">✦ Portfolio · Project 5</div>
+    <h1>QA Sentinel</h1>
+    <p class="lead">
+      Realtime software-testing AI chatbot where every answer is quality-gated —
+      offline policy, golden metrics, and LLM-as-judge for factual accuracy.
+    </p>
+    <div class="actions">
+      <a class="btn btn-primary" href="https://github.com/nilima-satapathy/qa-sentinel" target="_blank" rel="noopener">View on GitHub</a>
+      <a class="btn btn-ghost" href="https://share.streamlit.io/deploy?repository=nilima-satapathy%2Fqa-sentinel&branch=master&mainModule=app.py" target="_blank" rel="noopener">Deploy live app (Streamlit Cloud)</a>
+      <a class="btn btn-ghost" href="https://portfolio-gamma-three-dr2ocwjp91.vercel.app/" target="_blank" rel="noopener">Portfolio</a>
+    </div>
+
+    <div class="card">
+      <h2>Quality gate layers</h2>
+      <div class="layers">
+        <div class="layer"><span>L1 Offline policy</span><b>Always on</b></div>
+        <div class="layer"><span>L2 Golden metrics</span><b>When free tier exhausted</b></div>
+        <div class="layer"><span>L3 Factual LLM-as-judge</span><b>While free tier works</b></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Stack</h2>
+      <p style="margin:0;color:var(--muted);font-size:0.95rem">
+        Python · Streamlit · Groq (OpenAI-compatible) · Pytest · SQLite · OpenSpec · GitHub Actions
+      </p>
+    </div>
+
+    <p class="note">
+      <strong>Why not full Streamlit on Vercel?</strong>
+      Vercel is serverless (short-lived functions). Streamlit needs a long-running server with WebSockets.
+      This page is the public Vercel project hub; the interactive app deploys on
+      <a href="https://share.streamlit.io/deploy?repository=nilima-satapathy%2Fqa-sentinel&branch=master&mainModule=app.py">Streamlit Community Cloud</a>
+      (free) or any Docker host (see Dockerfile / render.yaml in the repo).
+    </p>
+
+    <footer>
+      Built by <strong>Nilima Satapathy</strong> · AI QA · GenAI Quality ·
+      <a href="https://github.com/nilima-satapathy">GitHub</a>
+    </footer>
+  </div>
+</body>
+</html>

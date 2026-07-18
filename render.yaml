@@ -1,0 +1,19 @@
+# Deploy full Streamlit app on Render (free web service)
+# Dashboard: https://dashboard.render.com → New → Blueprint
+
+services:
+  - type: web
+    name: qa-sentinel
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt && bash scripts/setup_harness.sh
+    startCommand: streamlit run app.py --server.port $PORT --server.address 0.0.0.0 --browser.gatherUsageStats false
+    envVars:
+      - key: OPENAI_BASE_URL
+        value: https://api.groq.com/openai/v1
+      - key: OPENAI_MODEL
+        value: llama-3.1-8b-instant
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: PYTHON_VERSION
+        value: "3.12.0"
