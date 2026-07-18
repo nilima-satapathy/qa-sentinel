@@ -1197,14 +1197,13 @@ def render_artifact_panel(gate: dict | None, meta: dict | None) -> None:
     <div class="c-section">Reasons</div>
     {reasons_html}
     {extras_html}
-    <div class="c-section">Meta</div>
-    <div class="c-reason"><span class="c-dot"></span><span>Latency {esc(lat_s)} · Tokens {esc(tok_s)}</span></div>
-    <div class="c-reason"><span class="c-dot"></span><span>Model {esc(model)}</span></div>
   </div>
 </div>
 """,
         unsafe_allow_html=True,
     )
+    # Native Streamlit meta (avoids HTML sanitizer glitches in the artifact card)
+    st.caption(f"Latency {lat_s} · Tokens {tok_s} · `{model}`")
 
 
 def render_header(client: ChatClient, meter: dict, pass_rate: float, stats: dict) -> None:
@@ -1424,7 +1423,7 @@ def main() -> None:
             st.session_state.last_meta,
         )
         if st.session_state.last_gate:
-            with st.expander("Scores detail"):
+            with st.expander("Scores detail", expanded=False):
                 st.json(st.session_state.last_gate.get("scores") or {})
 
     prompt = st.chat_input("Message QA Sentinel…")
