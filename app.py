@@ -69,9 +69,11 @@ div[data-testid="stToolbar"] { display: none; }
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
-  padding: 0.55rem 0 0.9rem;
-  margin-bottom: 0.35rem;
+  gap: 0.85rem;
+  padding: 0.15rem 0;
+  margin: 0;
+  width: 100%;
+  min-height: 2.65rem;
 }
 .c-brand {
   display: flex;
@@ -499,6 +501,53 @@ section[data-testid="stSidebar"] span {
   background: var(--c-accent) !important;
   border: none !important;
   color: #fff !important;
+}
+
+/* Top bar: brand + actions on one aligned row */
+section.main .block-container > div[data-testid="stVerticalBlock"] > div[data-testid="stHorizontalBlock"]:first-of-type {
+  align-items: center !important;
+  gap: 0.55rem !important;
+  margin-bottom: 0.35rem !important;
+}
+section.main .block-container > div[data-testid="stVerticalBlock"] > div[data-testid="stHorizontalBlock"]:first-of-type > div[data-testid="column"] {
+  display: flex !important;
+  align-items: center !important;
+}
+section.main .block-container > div[data-testid="stVerticalBlock"] > div[data-testid="stHorizontalBlock"]:first-of-type > div[data-testid="column"]:nth-child(2),
+section.main .block-container > div[data-testid="stVerticalBlock"] > div[data-testid="stHorizontalBlock"]:first-of-type > div[data-testid="column"]:nth-child(3) {
+  justify-content: flex-end !important;
+}
+/* Theme = icon-only circular control */
+section.main .block-container > div[data-testid="stVerticalBlock"] > div[data-testid="stHorizontalBlock"]:first-of-type > div[data-testid="column"]:nth-child(2) .stButton {
+  width: 2.65rem !important;
+  min-width: 2.65rem !important;
+}
+section.main .block-container > div[data-testid="stVerticalBlock"] > div[data-testid="stHorizontalBlock"]:first-of-type > div[data-testid="column"]:nth-child(2) button {
+  width: 2.65rem !important;
+  min-width: 2.65rem !important;
+  max-width: 2.65rem !important;
+  height: 2.65rem !important;
+  min-height: 2.65rem !important;
+  padding: 0 !important;
+  border-radius: 999px !important;
+  font-size: 1.2rem !important;
+  line-height: 1 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+section.main .block-container > div[data-testid="stVerticalBlock"] > div[data-testid="stHorizontalBlock"]:first-of-type > div[data-testid="column"]:nth-child(2) button p {
+  margin: 0 !important;
+  font-size: 1.2rem !important;
+}
+/* New conversation — same height as icon, pill shape */
+section.main .block-container > div[data-testid="stVerticalBlock"] > div[data-testid="stHorizontalBlock"]:first-of-type > div[data-testid="column"]:nth-child(3) button {
+  height: 2.65rem !important;
+  min-height: 2.65rem !important;
+  border-radius: 999px !important;
+  padding: 0 1rem !important;
+  white-space: nowrap !important;
+  font-size: 0.88rem !important;
 }
 
 div[data-testid="stProgress"] > div {
@@ -1297,21 +1346,30 @@ def main() -> None:
         if st.button("Export turns CSV", use_container_width=True):
             path = store.export_csv()
             st.success(f"Wrote {path.name}")
-    h1, h2, h3 = st.columns([4.2, 1.15, 1.35])
+    # Top bar: brand/meta | theme icon | New conversation
+    h1, h2, h3 = st.columns([6.2, 0.55, 1.55], gap="small", vertical_alignment="center")
     with h1:
         render_header(client, meter, pass_rate, stats)
     with h2:
-        st.markdown('<div style="height:0.4rem"></div>', unsafe_allow_html=True)
         if get_theme() == "light":
-            if st.button("🌙 Dark", key="theme_main_to_dark", use_container_width=True):
+            if st.button(
+                "🌙",
+                key="theme_main_to_dark",
+                help="Switch to dark theme",
+                use_container_width=True,
+            ):
                 set_theme("dark")
                 st.rerun()
         else:
-            if st.button("☀️ Light", key="theme_main_to_light", use_container_width=True):
+            if st.button(
+                "☀️",
+                key="theme_main_to_light",
+                help="Switch to light theme",
+                use_container_width=True,
+            ):
                 set_theme("light")
                 st.rerun()
     with h3:
-        st.markdown('<div style="height:0.4rem"></div>', unsafe_allow_html=True)
         if st.button(
             "New conversation",
             key="header_new_conversation",
