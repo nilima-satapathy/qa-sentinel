@@ -20,9 +20,15 @@ if str(ROOT) not in sys.path:
 
 load_dotenv(ROOT / ".env")
 
-from qasentinel.chat_client import ChatClient, load_red_team_prompts  # noqa: E402
+from qasentinel.chat_client import ChatClient, ChatResponse, load_red_team_prompts  # noqa: E402
 from qasentinel.paths import ensure_import_paths  # noqa: E402
-from qasentinel.quality_gate import GateResult, evaluate_answer, load_policy  # noqa: E402
+from qasentinel.quality_gate import (  # noqa: E402
+    OUT_OF_SCOPE_ANSWER,
+    GateResult,
+    evaluate_answer,
+    is_software_quality_related,
+    load_policy,
+)
 from qasentinel.repair import pick_ab_winner, try_repair  # noqa: E402
 from qasentinel.store import TurnStore  # noqa: E402
 
@@ -842,6 +848,60 @@ def process_turn(
     policy = load_policy()
     # Snapshot BEFORE this turn's usage — L2 only when free tier already exhausted
     free_tier = store.free_tier_snapshot(policy)
+
+    # Off-topic: no software-quality reference → fixed scope message (no model call)
+    if not is_software_quality_related(question, policy):
+        answer = OUT_OF_SCOPE_ANSWER
+        resp = ChatResponse(
+            answer=answer,
+            latency_ms=0.0,
+            model="scope-guard",
+            backend="offline",
+            error=None,
+        )
+        with st.spinner("Scoring quality gate…"):
+            # Do not spend free-tier tokens on L3 for pure off-topic questions
+            gate = evaluate_answer(
+                question,
+                answer,
+                use_judge=False,
+                judge_client=None,
+                policy=policy,
+                free_tier=free_tier,
+            )
+        store.add_turn(
+            question=question,
+            answer=answer,
+            gate_status=gate.status,
+            scores=gate.scores,
+            reasons=gate.reasons,
+            latency_ms=0.0,
+            total_tokens=None,
+            model="scope-guard",
+            backend="offline",
+            golden_case_id=gate.golden_case_id,
+        )
+        st.session_state.messages.append({"role": "user", "content": question})
+        st.session_state.messages.append(
+            {
+                "role": "assistant",
+                "content": answer,
+                "gate": gate.to_dict(),
+                "meta": {
+                    "backend": "offline",
+                    "model": "scope-guard",
+                    "latency_ms": 0.0,
+                    "tokens": None,
+                    "error": None,
+                    "ab": {"enabled": False},
+                    "repair": {"attempted": False},
+                    "out_of_scope": True,
+                },
+            }
+        )
+        st.session_state.last_gate = gate.to_dict()
+        st.session_state.last_meta = st.session_state.messages[-1]["meta"]
+        return
 
     with st.spinner("Thinking…"):
         if enable_ab and client.has_api_key:

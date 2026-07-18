@@ -4,10 +4,12 @@ from __future__ import annotations
 
 from qasentinel.chat_client import ChatClient, ChatResponse, match_golden_case
 from qasentinel.quality_gate import (
+    OUT_OF_SCOPE_REASON,
     GateResult,
     evaluate_answer,
     evaluate_l1,
     evaluate_l2,
+    is_software_quality_related,
     load_policy,
     should_run_l2,
 )
@@ -77,6 +79,19 @@ def test_l2_unrelated_question_not_forced():
     # No strong golden hit → L2 not applicable (does not fail on wrong domain alone)
     assert scores.get("applicable") is False
     assert gid is None
+
+
+def test_out_of_scope_question_is_detected():
+    assert is_software_quality_related("What is a flaky test?", load_policy()) is True
+    assert is_software_quality_related("What is the capital of France?", load_policy()) is False
+    gate = evaluate_answer(
+        "What is the capital of France?",
+        "Paris is the capital.",
+        use_judge=False,
+    )
+    assert gate.status == "FAIL"
+    assert any(OUT_OF_SCOPE_REASON in r for r in gate.reasons)
+    assert gate.scores["L1"].get("question_in_scope") is False
 
 
 def test_l2_inactive_when_free_credits_remain():
