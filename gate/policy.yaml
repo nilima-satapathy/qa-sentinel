@@ -14,9 +14,10 @@ must_include_warn: 0.35
 overlap_pass: 0.12
 overlap_warn: 0.06
 
-# L3 AI judge (0–1) — UI default is ON (uses free-tier API when key is set)
-judge_pass: 0.6
-judge_warn: 0.4
+# L3 factual-accuracy AI judge (uses free-tier API while credits remain)
+# Primary accuracy check when free tier is working; L2 golden bands only when exhausted.
+judge_pass: 0.65
+judge_warn: 0.45
 
 # Free tier (this app)
 free_tier_daily_tokens: 500000

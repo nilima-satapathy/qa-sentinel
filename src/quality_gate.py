@@ -256,54 +256,111 @@ def evaluate_l3_judge(
     answer: str,
     policy: dict[str, Any],
     client: ChatClient | None,
+    *,
+    reference_context: dict[str, Any] | None = None,
 ) -> tuple[Status, list[str], dict]:
+    """
+    Free-tier AI judge focused on factual accuracy of software-testing answers.
+    Optionally grounded with a golden reference when a related case is found.
+    """
     if client is None or not client.has_api_key:
-        return "PASS", ["L3: judge skipped (no API key)"], {"applicable": False}
+        return "PASS", ["L3: factual judge skipped (no API key)"], {
+            "applicable": False,
+            "focus": "factual_accuracy",
+        }
+
+    ref_block = ""
+    if reference_context:
+        ref_block = (
+            "\nKNOWN-GOOD REFERENCE (use to check factual accuracy; "
+            "do not require word-for-word match):\n"
+            f"Reference case id: {reference_context.get('id')}\n"
+            f"Reference answer: {reference_context.get('reference_answer') or ''}\n"
+            f"Key concepts that should appear when relevant: "
+            f"{reference_context.get('must_include') or []}\n"
+        )
 
     judge_prompt = (
-        "You are a strict QA quality judge. Score the ASSISTANT answer for a "
-        "software-testing assistant chatbot.\n"
-        "Return ONLY valid JSON (no markdown): "
-        '{"score": 0.0-1.0, "pass": true/false, "reasons": ["..."]}\n'
+        "You are a strict FACTUAL ACCURACY judge for a software-testing / QA chatbot.\n"
+        "Evaluate ONLY whether the ASSISTANT answer is factually correct for the QUESTION.\n"
+        "\n"
+        "Scoring focus (in order):\n"
+        "1) Factual accuracy of testing concepts, definitions, practices, and claims\n"
+        "2) No invented standards, tools, or metrics presented as fact\n"
+        "3) No critical misconceptions (e.g. wrong definition of unit/integration/E2E)\n"
+        "4) If the answer refuses a harmful/off-scope request, that can be accurate\n"
+        "Do NOT grade writing style or length heavily — accuracy first.\n"
+        f"{ref_block}"
+        "\n"
+        "Return ONLY valid JSON (no markdown, no extra text):\n"
+        '{"score": 0.0-1.0, "pass": true/false, '
+        '"factual_accuracy": 0.0-1.0, '
+        '"issues": ["short factual problems if any"], '
+        '"reasons": ["1-4 short reasons"]}\n'
+        "\n"
         f"QUESTION: {question}\n"
         f"ANSWER: {answer}\n"
     )
     try:
-        resp = client.complete("Judge this Q&A and return JSON only.\n" + judge_prompt)
+        resp = client.complete(
+            "Judge FACTUAL ACCURACY of this software-testing Q&A. "
+            "Return JSON only.\n" + judge_prompt
+        )
         if resp.error and not resp.answer:
-            return "WARN", [f"L3: judge call failed: {resp.error}"], {
+            return "WARN", [f"L3: factual judge call failed: {resp.error}"], {
                 "applicable": True,
+                "focus": "factual_accuracy",
                 "error": resp.error,
             }
         raw = resp.answer.strip()
         m = re.search(r"\{[\s\S]*\}", raw)
         if not m:
-            return "WARN", ["L3: judge returned non-JSON"], {
+            return "WARN", ["L3: factual judge returned non-JSON"], {
                 "applicable": True,
+                "focus": "factual_accuracy",
                 "raw": raw[:300],
             }
         data = json.loads(m.group(0))
-        score = float(data.get("score") or 0)
-        jpass = bool(data.get("pass"))
+        score = float(data.get("score") or data.get("factual_accuracy") or 0)
+        factual = float(data.get("factual_accuracy") or score)
+        jpass = bool(data.get("pass")) if "pass" in data else factual >= float(
+            policy.get("judge_pass") or 0.6
+        )
         jreasons = [str(x) for x in (data.get("reasons") or [])][:5]
+        issues = [str(x) for x in (data.get("issues") or [])][:5]
         scores = {
             "applicable": True,
+            "focus": "factual_accuracy",
             "score": score,
+            "factual_accuracy": factual,
             "pass": jpass,
             "reasons": jreasons,
+            "issues": issues,
+            "grounded_case_id": (reference_context or {}).get("id"),
             "tokens": resp.total_tokens,
             "latency_ms": resp.latency_ms,
         }
         j_pass = float(policy.get("judge_pass") or 0.6)
         j_warn = float(policy.get("judge_warn") or 0.4)
-        reasons = [f"L3: judge score={score:.2f}"] + [f"L3: {r}" for r in jreasons]
-        if (not jpass) or score < j_warn:
+        reasons = [
+            f"L3: factual accuracy score={factual:.2f}"
+            + (f" (grounded {scores['grounded_case_id']})" if scores.get("grounded_case_id") else "")
+        ]
+        reasons.extend(f"L3: {r}" for r in jreasons)
+        reasons.extend(f"L3 issue: {i}" for i in issues)
+        # Prefer factual_accuracy for band decisions
+        metric = factual if factual else score
+        if (not jpass) or metric < j_warn:
             return "FAIL", reasons, scores
-        if score < j_pass:
+        if metric < j_pass:
             return "WARN", reasons, scores
         return "PASS", reasons, scores
     except Exception as exc:  # noqa: BLE001
-        return "WARN", [f"L3: judge error: {exc}"], {"applicable": True, "error": str(exc)}
+        return "WARN", [f"L3: factual judge error: {exc}"], {
+            "applicable": True,
+            "focus": "factual_accuracy",
+            "error": str(exc),
+        }
 
 
 def evaluate_answer(
@@ -355,14 +412,41 @@ def evaluate_answer(
         reasons.extend(r2)
 
     if use_judge:
-        s3, r3, sc3 = evaluate_l3_judge(question, answer, pol, judge_client)
+        # While free tier has credits, ground the factual judge with a golden
+        # reference when a related case exists (does not activate full L2 bands).
+        ref_ctx = None
+        if free_tier is not None and not free_tier_exhausted(free_tier):
+            min_match = float(pol.get("l2_match_min") or 0.32)
+            case, mscore, mode = match_golden_case(question, min_score=min_match)
+            if case and mode:
+                ref_ctx = {
+                    "id": case.get("id"),
+                    "reference_answer": case.get("reference_answer"),
+                    "must_include": case.get("must_include"),
+                    "match_mode": mode,
+                    "match_score": mscore,
+                }
+        s3, r3, sc3 = evaluate_l3_judge(
+            question,
+            answer,
+            pol,
+            judge_client,
+            reference_context=ref_ctx,
+        )
         layers["L3"] = {"status": s3, "scores": sc3}
         scores["L3"] = sc3
         reasons.extend(r3)
         if sc3.get("applicable") is not False:
             status = _worst(status, s3)
     else:
-        layers["L3"] = {"status": "PASS", "scores": {"applicable": False, "skipped": True}}
+        layers["L3"] = {
+            "status": "PASS",
+            "scores": {
+                "applicable": False,
+                "skipped": True,
+                "focus": "factual_accuracy",
+            },
+        }
 
     if not reasons and status == "PASS":
         reasons.append("All gate layers passed")

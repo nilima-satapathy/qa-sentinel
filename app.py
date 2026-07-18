@@ -1044,7 +1044,7 @@ def render_artifact_panel(gate: dict | None, meta: dict | None) -> None:
     <div class="c-layer-list">
       <div class="c-layer-row"><span class="c-layer-name">L1 Offline</span><span class="c-layer-val c-sk">—</span></div>
       <div class="c-layer-row"><span class="c-layer-name">L2 Golden</span><span class="c-layer-val c-sk">—</span></div>
-      <div class="c-layer-row"><span class="c-layer-name">L3 AI Judge</span><span class="c-layer-val c-sk">off</span></div>
+      <div class="c-layer-row"><span class="c-layer-name">L3 Factual judge</span><span class="c-layer-val c-sk">off</span></div>
     </div>
   </div>
 </div>
@@ -1069,7 +1069,7 @@ def render_artifact_panel(gate: dict | None, meta: dict | None) -> None:
     labels = {
         "L1": "L1 Offline policy",
         "L2": "L2 Golden match",
-        "L3": "L3 AI judge",
+        "L3": "L3 Factual judge",
     }
     for key in ("L1", "L2", "L3"):
         val, cls = _layer_status(gate, key)
@@ -1259,9 +1259,13 @@ def main() -> None:
         st.divider()
         st.markdown("### Settings")
         use_judge = st.toggle(
-            "AI-as-judge (L3)",
+            "L3 factual accuracy (AI judge)",
             value=True,
-            help="On by default — scores each answer with a free-tier LLM judge (extra tokens). Turn off to save credits.",
+            help=(
+                "While free-tier credits remain: scores FACTUAL ACCURACY of the answer "
+                "(extra free-tier call). May ground against a related golden reference. "
+                "Turn off to save tokens."
+            ),
         )
         enable_repair = st.toggle("Repair loop", value=False)
         enable_ab = st.toggle(
