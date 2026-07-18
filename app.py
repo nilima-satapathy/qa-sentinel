@@ -1297,15 +1297,6 @@ def main() -> None:
         if st.button("Export turns CSV", use_container_width=True):
             path = store.export_csv()
             st.success(f"Wrote {path.name}")
-        if st.button(
-            "New conversation",
-            key="sidebar_new_conversation",
-            use_container_width=True,
-            help="Clear chat and quality gate; start fresh",
-        ):
-            clear_conversation()
-            st.rerun()
-
     h1, h2, h3 = st.columns([4.2, 1.15, 1.35])
     with h1:
         render_header(client, meter, pass_rate, stats)
@@ -1322,7 +1313,7 @@ def main() -> None:
     with h3:
         st.markdown('<div style="height:0.4rem"></div>', unsafe_allow_html=True)
         if st.button(
-            "✨ New conversation",
+            "New conversation",
             key="header_new_conversation",
             type="primary",
             use_container_width=True,
@@ -1334,24 +1325,6 @@ def main() -> None:
     chat_col, art_col = st.columns([1.55, 1], gap="large")
 
     with chat_col:
-        if st.session_state.messages:
-            # Always-visible clear control above the thread
-            nc1, nc2 = st.columns([3, 1.2])
-            with nc1:
-                st.markdown(
-                    '<div class="c-chips-label" style="margin-top:0">Conversation</div>',
-                    unsafe_allow_html=True,
-                )
-            with nc2:
-                if st.button(
-                    "Clear & start new",
-                    key="chat_new_conversation",
-                    use_container_width=True,
-                    help="Wipe messages and gate panel",
-                ):
-                    clear_conversation()
-                    st.rerun()
-
         if not st.session_state.messages:
             st.markdown(
                 """
