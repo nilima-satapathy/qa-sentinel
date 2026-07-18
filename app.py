@@ -58,10 +58,35 @@ div[data-testid="stToolbar"] { display: none; }
 
 .block-container {
   padding-top: 0.6rem !important;
-  padding-bottom: 6.5rem !important;
+  padding-bottom: 7.5rem !important;
   padding-left: 1.5rem !important;
   padding-right: 1.5rem !important;
   max-width: 1180px;
+}
+
+/* Site credit footer */
+.c-site-footer {
+  text-align: center;
+  margin: 1.75rem auto 0.5rem;
+  padding: 0.85rem 0.5rem 0.25rem;
+  max-width: 720px;
+  font-family: 'Source Sans 3', system-ui, sans-serif;
+  font-size: 0.78rem;
+  color: var(--c-muted);
+  border-top: 1px solid var(--c-border);
+  letter-spacing: 0.01em;
+}
+.c-site-footer strong {
+  color: var(--c-muted-strong);
+  font-weight: 600;
+}
+.c-site-footer a {
+  color: var(--c-accent-text);
+  text-decoration: none;
+  font-weight: 500;
+}
+.c-site-footer a:hover {
+  text-decoration: underline;
 }
 
 /* —— Header (minimal Claude) —— */
@@ -1428,6 +1453,18 @@ def main() -> None:
         if st.session_state.last_gate:
             with st.expander("Scores detail"):
                 st.json(st.session_state.last_gate.get("scores") or {})
+
+    st.markdown(
+        """
+<div class="c-site-footer">
+  Built by <strong>Nilima Satapathy</strong>
+  · AI QA · GenAI Quality
+  · <a href="https://github.com/nilima-satapathy/qa-sentinel" target="_blank" rel="noopener">GitHub</a>
+  · <a href="https://portfolio-gamma-three-dr2ocwjp91.vercel.app/" target="_blank" rel="noopener">Portfolio</a>
+</div>
+""",
+        unsafe_allow_html=True,
+    )
 
     prompt = st.chat_input("Message QA Sentinel…")
     if prompt:
