@@ -1197,11 +1197,9 @@ def render_artifact_panel(gate: dict | None, meta: dict | None) -> None:
     <div class="c-section">Reasons</div>
     {reasons_html}
     {extras_html}
-    <div class="c-meta-grid">
-      <div class="c-meta-card"><div class="k">Latency</div><div class="v">{esc(lat_s)}</div></div>
-      <div class="c-meta-card"><div class="k">Tokens</div><div class="v">{esc(tok_s)}</div></div>
-      <div class="c-meta-card" style="grid-column:1/-1"><div class="k">Model</div><div class="v">{esc(model)}</div></div>
-    </div>
+    <div class="c-section">Meta</div>
+    <div class="c-reason"><span class="c-dot"></span><span>Latency {esc(lat_s)} · Tokens {esc(tok_s)}</span></div>
+    <div class="c-reason"><span class="c-dot"></span><span>Model {esc(model)}</span></div>
   </div>
 </div>
 """,
