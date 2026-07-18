@@ -5,8 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from src.chat_client import ChatClient, ChatResponse
-from src.quality_gate import GateResult, Status, evaluate_answer
+from qasentinel.chat_client import ChatClient, ChatResponse
+from qasentinel.quality_gate import GateResult, Status, evaluate_answer
 
 
 @dataclass

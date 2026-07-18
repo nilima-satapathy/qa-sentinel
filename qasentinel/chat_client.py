@@ -13,7 +13,7 @@ from typing import Any, Literal
 import requests
 from dotenv import load_dotenv
 
-from src.paths import ensure_import_paths, eval_root
+from qasentinel.paths import ensure_import_paths, eval_root
 
 load_dotenv()
 

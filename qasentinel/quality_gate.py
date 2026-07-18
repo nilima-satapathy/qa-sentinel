@@ -11,8 +11,8 @@ from typing import Any, Literal
 
 import yaml
 
-from src.chat_client import ChatClient, match_golden_case
-from src.paths import ROOT, ensure_import_paths
+from qasentinel.chat_client import ChatClient, match_golden_case
+from qasentinel.paths import ROOT, ensure_import_paths
 
 Status = Literal["PASS", "WARN", "FAIL"]
 

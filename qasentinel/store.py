@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterator
 
-from src.paths import ROOT
+from qasentinel.paths import ROOT
 
 DEFAULT_DB = ROOT / "data" / "turns.sqlite3"
 

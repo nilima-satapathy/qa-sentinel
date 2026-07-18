@@ -20,11 +20,11 @@ if str(ROOT) not in sys.path:
 
 load_dotenv(ROOT / ".env")
 
-from src.chat_client import ChatClient, load_red_team_prompts  # noqa: E402
-from src.paths import ensure_import_paths  # noqa: E402
-from src.quality_gate import GateResult, evaluate_answer, load_policy  # noqa: E402
-from src.repair import pick_ab_winner, try_repair  # noqa: E402
-from src.store import TurnStore  # noqa: E402
+from qasentinel.chat_client import ChatClient, load_red_team_prompts  # noqa: E402
+from qasentinel.paths import ensure_import_paths  # noqa: E402
+from qasentinel.quality_gate import GateResult, evaluate_answer, load_policy  # noqa: E402
+from qasentinel.repair import pick_ab_winner, try_repair  # noqa: E402
+from qasentinel.store import TurnStore  # noqa: E402
 
 ThemeName = Literal["dark", "light"]
 

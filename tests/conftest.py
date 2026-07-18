@@ -8,7 +8,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 # Setup harness path for tests
-from src.paths import ensure_import_paths  # noqa: E402
+from qasentinel.paths import ensure_import_paths  # noqa: E402
 
 try:
     ensure_import_paths()

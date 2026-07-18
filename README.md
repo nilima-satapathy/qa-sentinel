@@ -134,7 +134,7 @@ Main specs: `openspec/specs/`
 qa-sentinel/
 ├── app.py                 # Streamlit UI (Claude-style chat + artifact)
 ├── gate/policy.yaml
-├── src/
+├── qasentinel/            # app package (not named src — Streamlit Cloud conflict)
 │   ├── chat_client.py
 │   ├── quality_gate.py
 │   ├── repair.py

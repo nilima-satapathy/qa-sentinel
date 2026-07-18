@@ -21,9 +21,9 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from src.chat_client import ChatClient  # noqa: E402
-from src.paths import ensure_import_paths, eval_root  # noqa: E402
-from src.quality_gate import evaluate_answer  # noqa: E402
+from qasentinel.chat_client import ChatClient  # noqa: E402
+from qasentinel.paths import ensure_import_paths, eval_root  # noqa: E402
+from qasentinel.quality_gate import evaluate_answer  # noqa: E402
 
 
 def load_cases(ids: list[str] | None, limit: int) -> list[dict]:

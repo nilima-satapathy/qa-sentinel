@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from src.chat_client import ChatClient, ChatResponse, match_golden_case
-from src.quality_gate import (
+from qasentinel.chat_client import ChatClient, ChatResponse, match_golden_case
+from qasentinel.quality_gate import (
     GateResult,
     evaluate_answer,
     evaluate_l1,
@@ -11,8 +11,8 @@ from src.quality_gate import (
     load_policy,
     should_run_l2,
 )
-from src.repair import pick_ab_winner, should_repair, try_repair
-from src.store import TurnStore
+from qasentinel.repair import pick_ab_winner, should_repair, try_repair
+from qasentinel.store import TurnStore
 
 
 FLAKY_Q = "What is a flaky test, and why is it harmful in CI?"
