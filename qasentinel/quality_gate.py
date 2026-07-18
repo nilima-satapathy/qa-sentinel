@@ -126,6 +126,19 @@ def is_attack_like_question(question: str) -> bool:
     )
 
 
+def _keyword_in_text(keyword: str, text: str) -> bool:
+    """Match multi-word phrases as substrings; short tokens as whole words only."""
+    k = (keyword or "").strip().lower()
+    if not k:
+        return False
+    t = (text or "").lower()
+    # Multi-word or long keywords: substring is fine
+    if " " in k or len(k) >= 5:
+        return k in t
+    # Short tokens (qa, ci, api, bug, …) — require word boundaries
+    return re.search(rf"\b{re.escape(k)}\b", t) is not None
+
+
 def is_software_quality_related(
     question: str,
     policy: dict[str, Any] | None = None,
@@ -141,7 +154,7 @@ def is_software_quality_related(
     keywords = [k.lower() for k in (pol.get("domain_keywords") or [])]
     keywords.extend(k.lower() for k in (pol.get("question_scope_keywords") or []))
     keywords.extend(_DEFAULT_QUESTION_SCOPE)
-    return any(k in q for k in keywords if k)
+    return any(_keyword_in_text(k, q) for k in keywords if k)
 
 
 def evaluate_l1(question: str, answer: str, policy: dict[str, Any]) -> tuple[Status, list[str], dict]:
