@@ -1207,36 +1207,32 @@ def render_artifact_panel(gate: dict | None, meta: dict | None) -> None:
 
 
 def render_header(client: ChatClient, meter: dict, pass_rate: float, stats: dict) -> None:
-    mode = (
-        '<span class="c-chip c-chip-accent">Live free-tier</span>'
-        if client.has_api_key
-        else '<span class="c-chip">Offline golden</span>'
-    )
-    rate = (
-        f'<span class="c-chip">Session {pass_rate:.0f}% PASS</span>'
-        if stats.get("total")
-        else ""
-    )
-    st.markdown(
-        f"""
-<div class="c-header">
-  <div class="c-brand">
-    <div class="c-mark">✦</div>
-    <div>
-      <div class="c-title">QA Sentinel</div>
-      <div class="c-subtitle">Software-testing assistant · gated answers</div>
-    </div>
-  </div>
-  <div class="c-header-right">
-    {mode}
-    {rate}
-    <span class="c-chip">{meter["tokens_remaining"]:,} tokens</span>
-    <span class="c-chip">{esc(client.model)}</span>
-  </div>
-</div>
-""",
-        unsafe_allow_html=True,
-    )
+    """Header using Streamlit-safe markup (no nested chips Streamlit strips/escapes)."""
+    brand, meta = st.columns([1.35, 2.0], gap="small", vertical_alignment="center")
+    with brand:
+        st.markdown(
+            '<p style="margin:0;font-family:\'Source Serif 4\',Georgia,serif;'
+            'font-size:1.2rem;font-weight:600;letter-spacing:-0.02em;">'
+            "✦ QA Sentinel</p>"
+            '<p style="margin:0.1rem 0 0;font-size:0.78rem;opacity:0.7;">'
+            "Software-testing assistant · gated answers</p>",
+            unsafe_allow_html=True,
+        )
+    with meta:
+        bits: list[str] = []
+        bits.append("Live free-tier" if client.has_api_key else "Offline golden")
+        if stats.get("total"):
+            bits.append(f"Session {pass_rate:.0f}% PASS")
+        bits.append(f"{meter['tokens_remaining']:,} tokens")
+        bits.append(str(client.model))
+        # Single-line text — Streamlit will not mangle this into visible tags
+        st.markdown(
+            "<p style='margin:0;text-align:right;font-size:0.78rem;font-weight:600;"
+            "line-height:1.45;opacity:0.85;'>"
+            + " · ".join(esc(b) for b in bits)
+            + "</p>",
+            unsafe_allow_html=True,
+        )
 
 
 def render_freebar(meter: dict) -> None:
