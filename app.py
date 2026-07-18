@@ -64,17 +64,26 @@ div[data-testid="stToolbar"] { display: none; }
   max-width: 1180px;
 }
 
-/* Site credit footer */
+/* Site credit — bottom-right corner (not centered footer) */
 .c-site-footer {
-  text-align: center;
-  margin: 1.75rem auto 0.5rem;
-  padding: 0.85rem 0.5rem 0.25rem;
-  max-width: 720px;
+  position: fixed;
+  right: 1rem;
+  bottom: 5.25rem;
+  z-index: 40;
+  text-align: right;
+  margin: 0;
+  padding: 0.4rem 0.65rem;
+  max-width: 16rem;
   font-family: 'Source Sans 3', system-ui, sans-serif;
-  font-size: 0.78rem;
+  font-size: 0.7rem;
+  line-height: 1.35;
   color: var(--c-muted);
-  border-top: 1px solid var(--c-border);
   letter-spacing: 0.01em;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: 10px;
+  box-shadow: var(--c-shadow);
+  pointer-events: auto;
 }
 .c-site-footer strong {
   color: var(--c-muted-strong);
@@ -1457,10 +1466,11 @@ def main() -> None:
     st.markdown(
         """
 <div class="c-site-footer">
-  Built by <strong>Nilima Satapathy</strong>
-  · AI QA · GenAI Quality
-  · <a href="https://github.com/nilima-satapathy/qa-sentinel" target="_blank" rel="noopener">GitHub</a>
-  · <a href="https://portfolio-gamma-three-dr2ocwjp91.vercel.app/" target="_blank" rel="noopener">Portfolio</a>
+  <strong>Nilima Satapathy</strong><br/>
+  AI QA · GenAI Quality<br/>
+  <a href="https://github.com/nilima-satapathy/qa-sentinel" target="_blank" rel="noopener">GitHub</a>
+  ·
+  <a href="https://portfolio-gamma-three-dr2ocwjp91.vercel.app/" target="_blank" rel="noopener">Portfolio</a>
 </div>
 """,
         unsafe_allow_html=True,
