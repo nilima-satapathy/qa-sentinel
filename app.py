@@ -954,6 +954,13 @@ def session_pass_rate(stats: dict) -> float:
     return 100.0 * (stats.get("pass") or 0) / total
 
 
+def clear_conversation() -> None:
+    """Reset chat UI and quality-gate artifact for a fresh conversation."""
+    st.session_state.messages = []
+    st.session_state.last_gate = None
+    st.session_state.last_meta = {}
+
+
 # ---------------------------------------------------------------------------
 # UI
 # ---------------------------------------------------------------------------
@@ -1290,13 +1297,16 @@ def main() -> None:
         if st.button("Export turns CSV", use_container_width=True):
             path = store.export_csv()
             st.success(f"Wrote {path.name}")
-        if st.button("Clear chat", use_container_width=True):
-            st.session_state.messages = []
-            st.session_state.last_gate = None
-            st.session_state.last_meta = {}
+        if st.button(
+            "New conversation",
+            key="sidebar_new_conversation",
+            use_container_width=True,
+            help="Clear chat and quality gate; start fresh",
+        ):
+            clear_conversation()
             st.rerun()
 
-    h1, h2 = st.columns([5, 1.1])
+    h1, h2, h3 = st.columns([4.2, 1.15, 1.35])
     with h1:
         render_header(client, meter, pass_rate, stats)
     with h2:
@@ -1309,10 +1319,39 @@ def main() -> None:
             if st.button("☀️ Light", key="theme_main_to_light", use_container_width=True):
                 set_theme("light")
                 st.rerun()
+    with h3:
+        st.markdown('<div style="height:0.4rem"></div>', unsafe_allow_html=True)
+        if st.button(
+            "✨ New conversation",
+            key="header_new_conversation",
+            type="primary",
+            use_container_width=True,
+            help="Clear the chat and quality gate artifact, then start a new conversation",
+        ):
+            clear_conversation()
+            st.rerun()
 
     chat_col, art_col = st.columns([1.55, 1], gap="large")
 
     with chat_col:
+        if st.session_state.messages:
+            # Always-visible clear control above the thread
+            nc1, nc2 = st.columns([3, 1.2])
+            with nc1:
+                st.markdown(
+                    '<div class="c-chips-label" style="margin-top:0">Conversation</div>',
+                    unsafe_allow_html=True,
+                )
+            with nc2:
+                if st.button(
+                    "Clear & start new",
+                    key="chat_new_conversation",
+                    use_container_width=True,
+                    help="Wipe messages and gate panel",
+                ):
+                    clear_conversation()
+                    st.rerun()
+
         if not st.session_state.messages:
             st.markdown(
                 """
